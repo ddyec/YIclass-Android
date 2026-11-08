@@ -30,6 +30,6 @@ JSON mode 结果解析为 `Plan`，网络客户端没有数据库写入能力。
 
 ## 界面与构建
 
-AppCompat + `Theme.Material3.DayNight`，MaterialToolbar、分段按钮、BottomNavigationView、FloatingActionButton、TextInputLayout、MaterialCardView、MaterialCheckBox、BottomSheetDialog 和 MaterialAlertDialogBuilder。周表采用原生可点击卡片，支持无障碍描述与重叠并列展示，日/列表视图提供完整课程文本。所有 UI 都是 Android View，不嵌套网页或 Flutter 引擎。
+AppCompat + `Theme.Material3Expressive.DayNight`（Material Components 1.14）。品牌色 #3657CE 生成完整 M3 色调方案，Android 12+ 可选动态配色。组件：Expressive 顶部栏与导航栏、FloatingActionButton、按压形变的 Expressive 按钮（含 56dp 中号 CTA 与图标按钮）、连接式按钮组（视图/星期/类型切换）、分段列表（设置、列表视图、导入核对）、`ExpressiveShapes`（基于 androidx.graphics.shapes 的 cookie/sunny/burst 形状）、LoadingIndicator、Chip、MaterialSwitch、MaterialDatePicker/TimePicker、BottomSheetDragHandleView 与 MaterialFadeThrough 页面过渡。周表采用原生可点击卡片，支持无障碍描述与重叠并列展示，日/列表视图提供完整课程文本。所有 UI 都是 Android View，不嵌套网页或 Flutter 引擎。
 
 Java 17 + AGP 8.11.1 + Gradle 8.14.3，JDK 21 构建；Java 核心与 Android I/O 分离。启用核心库脱糖支持 Android 8.0 起的 Java 时间/集合 API。CI 使用标准 SDK 工具；本次云环境中的 ARM 主机资源编译工具适配没有写入工程。

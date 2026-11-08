@@ -33,6 +33,11 @@ public final class Settings {
     return Integer.parseInt(get("theme", "-1"));
   }
 
+  /** Material You wallpaper colors (Android 12+); off by default to keep the brand scheme. */
+  public boolean dynamicColor() {
+    return "1".equals(get("dynamic_color", "0"));
+  }
+
   public int[] starts() {
     return slots("starts", Schedule.STARTS);
   }

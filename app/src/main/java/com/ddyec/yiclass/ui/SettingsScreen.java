@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.*;
 import android.appwidget.*;
 import android.content.*;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -13,11 +12,14 @@ import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.NotificationManagerCompat;
+import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.ddyec.yiclass.widget.AgendaWidget;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.DynamicColors;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
@@ -32,125 +34,139 @@ final class SettingsScreen {
 
   View build() {
     LinearLayout box = Ui.column(a);
-    Ui.inset(box, 20);
-
-    MaterialCardView hero = Ui.heroCard(a);
-    LinearLayout heroBody = Ui.column(a);
-    Ui.inset(heroBody, 20);
-    heroBody.addView(
-        Ui.pillBadge(
-            a,
-            "MATERIAL 3 EXPRESSIVE · 本机优先",
-            Ui.surfaceLow(a),
-            Ui.primary(a)));
-    TextView heroTitle = Ui.text(a, "设置与权限中心", 24, Ui.onPrimaryContainer(a));
-    heroTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-    heroTitle.setPadding(0, Ui.dp(a, 10), 0, Ui.dp(a, 4));
-    heroBody.addView(heroTitle);
-    TextView heroNote =
-        Ui.text(
-            a,
-            "YI课表 · 原生 Android\n课程保存在本机，可随时导出备份；提醒与权限状态一目了然。",
-            13,
-            Ui.onPrimaryContainer(a));
-    heroNote.setLineSpacing(Ui.dp(a, 3), 1);
-    heroBody.addView(heroNote);
-    hero.addView(heroBody);
-    LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, -2);
-    heroLp.bottomMargin = Ui.dp(a, 8);
-    box.addView(hero, heroLp);
+    box.setPadding(Ui.dp(a, 16), Ui.dp(a, 8), Ui.dp(a, 16), Ui.dp(a, 96));
 
     boolean notifications = NotificationManagerCompat.from(a).areNotificationsEnabled();
     boolean exact =
         Build.VERSION.SDK_INT < 31
             || a.getSystemService(AlarmManager.class).canScheduleExactAlarms();
     boolean allReady = notifications && exact;
+    int pending = (notifications ? 0 : 1) + (exact ? 0 : 1);
 
-    sectionWithBadge(
-        box,
-        "权限与桌面组件",
-        allReady ? "权限全部就绪" : "待完善权限",
-        allReady);
-
-    box.addView(
-        Ui.permissionCard(
+    // Hero: emphasized page title with an Expressive shape reflecting permission health.
+    MaterialCardView hero = Ui.heroCard(a);
+    if (!allReady) hero.setCardBackgroundColor(Ui.tertiaryContainer(a));
+    int heroInk = allReady ? Ui.onPrimaryContainer(a) : Ui.onTertiaryContainer(a);
+    LinearLayout heroBody = Ui.row(a);
+    heroBody.setPadding(Ui.dp(a, 24), Ui.dp(a, 22), Ui.dp(a, 20), Ui.dp(a, 22));
+    LinearLayout heroText = Ui.column(a);
+    TextView heroTitle = Ui.display(a, "设置");
+    heroTitle.setTextColor(heroInk);
+    heroText.addView(heroTitle);
+    TextView heroState =
+        Ui.label(a, allReady ? "提醒权限全部就绪" : "还有 " + pending + " 项提醒权限待开启", heroInk);
+    heroState.setPadding(0, Ui.dp(a, 4), 0, Ui.dp(a, 6));
+    heroText.addView(heroState);
+    TextView heroNote = Ui.text(a, "课程保存在本机，可随时导出备份。", 13, heroInk);
+    heroNote.setAlpha(0.85f);
+    heroText.addView(heroNote);
+    heroBody.addView(heroText, new LinearLayout.LayoutParams(0, -2, 1));
+    heroBody.addView(
+        Ui.shapeIcon(
             a,
-            "🔔",
-            "课程与日程通知权限",
-            "通知："
-                + (notifications ? "已开启" : "未开启")
-                + " · 在每项安排开始前，按你单独设定的提前量发送系统横幅与锁屏提醒。",
-            notifications ? "已开启" : "未开启",
+            allReady ? ExpressiveShapes.COOKIE_9 : ExpressiveShapes.SOFT_BURST,
+            allReady ? R.drawable.ic_check : R.drawable.ic_notifications,
+            allReady ? Ui.primary(a) : Ui.tertiary(a),
+            allReady
+                ? Ui.onPrimary(a)
+                : Ui.color(a, com.google.android.material.R.attr.colorOnTertiary),
+            76,
+            34));
+    hero.addView(heroBody);
+    box.addView(hero, Ui.wrap(a, 0, 4));
+
+    // Permissions & widget — segmented list.
+    section(box, "提醒与权限");
+    List<View> perm = new ArrayList<>();
+    perm.add(
+        permissionItem(
+            R.drawable.ic_notifications,
+            "课程与日程通知",
+            notifications ? "按每项安排的提前量发送横幅与锁屏提醒" : "未开启 · 到点时无法弹出提醒",
             notifications,
-            "设置通知权限",
             () -> requestNotificationPermission(notifications)));
-
-    if (Build.VERSION.SDK_INT >= 31) {
-      box.addView(
-          Ui.permissionCard(
-              a,
-              "⏱",
-              "精确时间唤醒权限",
-              "精确提醒："
-                  + (exact ? "可用" : "未授权，将使用系统允许的近似提醒")
-                  + " · 保障低电量或息屏状态下准点唤醒；设备重启、时区或系统时间变更后自动恢复。",
-              exact ? "精准可用" : "近似模式",
+    if (Build.VERSION.SDK_INT >= 31)
+      perm.add(
+          permissionItem(
+              R.drawable.ic_alarm,
+              "精确时间唤醒",
+              exact ? "低电量或息屏时也能准点提醒" : "近似模式 · 授权后可准点唤醒",
               exact,
-              "允许精确提醒",
               this::requestExactAlarmPermission));
-    }
-
-    box.addView(
-        Ui.permissionCard(
+    perm.add(
+        Ui.listItem(
             a,
-            "⊞",
+            R.drawable.ic_widgets,
             "桌面课表小组件",
-            "在手机主屏幕固定可调整大小的今日与未来七天近期课表卡片，点按直达主界面。",
-            "桌面组件",
-            true,
-            "添加桌面课表组件",
+            "固定今日与未来七天的近期安排",
+            Ui.icon(a, R.drawable.ic_add, 24, Ui.muted(a)),
+            0,
+            1,
             () -> {
               AppWidgetManager manager = AppWidgetManager.getInstance(a);
               if (manager.isRequestPinAppWidgetSupported())
                 manager.requestPinAppWidget(new ComponentName(a, AgendaWidget.class), null, null);
               else a.toast("请长按桌面，在小组件中选择 YI课表");
             }));
+    perm.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_privacy_tip,
+            "权限用途与隐私边界",
+            "最小权限原则，不扫描存储、通讯录或定位",
+            chevron(),
+            0,
+            1,
+            () -> showPermissionGuide(notifications, exact)));
+    addGroup(box, perm);
 
-    box.addView(
-        Ui.button(a, "查看权限用途与隐私边界说明", () -> showPermissionGuide(notifications, exact)));
-
+    // Semester & display.
     section(box, "学期与显示");
-    box.addView(
-        Ui.settingTile(
-            a,
-            "学期首周 · " + a.settings.term(),
-            a.settings.term().toString(),
-            "第 1 周星期一日期，用于推算全部循环周次",
-            this::term));
-    box.addView(
-        Ui.settingTile(
-            a,
-            "时区 · " + a.settings.zone(),
-            a.settings.zone().getId(),
-            "课表钟点与午夜自动刷新所使用的 IANA 时区",
-            this::zone));
-    box.addView(
-        Ui.settingTile(
-            a,
-            "作息时间 · 10节课",
-            "10 节",
-            "自定义第 1–10 节起止时间，用于周视图刻度与 PDF 导入",
-            this::slots));
     String themeLabel =
         a.settings.theme() == -1 ? "跟随系统" : a.settings.theme() == 2 ? "深色" : "浅色";
-    box.addView(
-        Ui.settingTile(
+    List<View> display = new ArrayList<>();
+    display.add(
+        Ui.listItem(
             a,
-            "外观 · " + themeLabel,
-            themeLabel,
-            "切换浅色、深色或跟随系统昼夜模式",
+            R.drawable.ic_school,
+            "学期首周",
+            "第 1 周星期一，用于推算全部循环周次",
+            Ui.trailingValue(a, a.settings.term().toString()),
+            0,
+            1,
+            this::term));
+    display.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_public,
+            "时区",
+            "课表钟点与午夜自动刷新使用的 IANA 时区",
+            Ui.trailingValue(a, a.settings.zone().getId()),
+            0,
+            1,
+            this::zone));
+    display.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_schedule,
+            "作息时间",
+            "自定义第 1–10 节起止时间",
+            Ui.trailingValue(a, "10 节"),
+            0,
+            1,
+            this::slots));
+    display.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_bedtime,
+            "外观",
+            "浅色、深色或跟随系统",
+            Ui.trailingValue(a, themeLabel),
+            0,
+            1,
             () ->
                 new MaterialAlertDialogBuilder(a)
+                    .setIcon(R.drawable.ic_bedtime)
                     .setTitle("外观")
                     .setSingleChoiceItems(
                         new String[] {"跟随系统", "浅色", "深色"},
@@ -162,65 +178,133 @@ final class SettingsScreen {
                           d.dismiss();
                         })
                     .show()));
+    if (DynamicColors.isDynamicColorAvailable()) {
+      MaterialSwitch dynamic = new MaterialSwitch(a);
+      dynamic.setChecked(a.settings.dynamicColor());
+      dynamic.setContentDescription("动态配色");
+      dynamic.setOnCheckedChangeListener(
+          (v, on) -> {
+            a.settings.put("dynamic_color", on ? "1" : "0");
+            a.recreate();
+          });
+      display.add(
+          Ui.listItem(
+              a,
+              R.drawable.ic_palette,
+              "动态配色",
+              "跟随壁纸取色（Material You）",
+              dynamic,
+              0,
+              1,
+              dynamic::toggle));
+    }
+    addGroup(box, display);
 
-    section(box, "AI助手");
-    MaterialCardView aiCard = Ui.surfaceCard(a);
-    LinearLayout aiBody = Ui.column(a);
-    Ui.inset(aiBody, 18);
-    LinearLayout aiHeader = Ui.row(a);
-    TextView aiTitle = Ui.subheading(a, "智能时间与调课助手");
-    aiHeader.addView(aiTitle, new LinearLayout.LayoutParams(0, -2, 1));
-    aiHeader.addView(
-        Ui.pillBadge(
+    // AI assistant.
+    section(box, "AI 助手");
+    List<View> ai = new ArrayList<>();
+    ai.add(
+        Ui.listItem(
             a,
-            a.settings.get("model", "deepseek-chat"),
-            Ui.primaryContainer(a),
-            Ui.onPrimaryContainer(a)));
-    aiBody.addView(aiHeader);
-    aiBody.addView(
-        Ui.note(
+            R.drawable.ic_auto_awesome,
+            "接口、模型与 API Key",
+            "默认 DeepSeek 兼容接口",
+            Ui.trailingValue(a, a.settings.get("model", "deepseek-chat")),
+            0,
+            1,
+            this::api));
+    ai.add(
+        Ui.listItem(
             a,
-            "默认使用 DeepSeek 兼容接口。仅在你发送请求时，将课程内容发往所配置的服务；原 PDF 不会上传。Key 由 Android Keystore"
-                + " 加密保存，不包含在备份中。"));
-    aiBody.addView(Ui.tonalButton(a, "配置接口、模型与 API Key", this::api));
-    aiCard.addView(aiBody);
-    box.addView(aiCard);
+            R.drawable.ic_key,
+            "数据与密钥",
+            "仅在发送请求时提交课程内容，原 PDF 不上传；Key 由 Android Keystore 加密且不进入备份",
+            null,
+            0,
+            1,
+            null));
+    addGroup(box, ai);
 
+    // Data & backup.
     section(box, "数据与备份");
-    LinearLayout dataCol = Ui.column(a);
-    MaterialButton importBtn =
-        Ui.filledButton(a, "从 PDF 导入", () -> a.pdfPicker.launch(new String[] {"application/pdf"}));
-    LinearLayout.LayoutParams btnGap = new LinearLayout.LayoutParams(-1, Ui.dp(a, 48));
-    btnGap.bottomMargin = Ui.dp(a, 8);
-    dataCol.addView(importBtn, btnGap);
-
-    LinearLayout backupRow = Ui.row(a);
-    MaterialButton exportBtn =
-        Ui.tonalButton(
-            a, "导出完整课表备份", () -> a.backupWriter.launch("YI课表-" + LocalDate.now() + ".json"));
-    LinearLayout.LayoutParams halfLeft = new LinearLayout.LayoutParams(0, Ui.dp(a, 48), 1);
-    halfLeft.rightMargin = Ui.dp(a, 6);
-    backupRow.addView(exportBtn, halfLeft);
-
-    MaterialButton restoreBtn =
-        Ui.button(
+    List<View> data = new ArrayList<>();
+    data.add(
+        Ui.listItem(
             a,
+            R.drawable.ic_upload_file,
+            "从 PDF 导入",
+            "本地识别教务课表，逐项核对后导入",
+            chevron(),
+            0,
+            1,
+            () -> a.pdfPicker.launch(new String[] {"application/pdf"})));
+    data.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_download,
+            "导出完整课表备份",
+            "JSON，包含学期、时区与作息，不含 API Key",
+            chevron(),
+            0,
+            1,
+            () -> a.backupWriter.launch("YI课表-" + LocalDate.now() + ".json")));
+    data.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_restore,
             "恢复备份",
+            "用备份替换当前课表",
+            chevron(),
+            0,
+            1,
             () ->
                 a.backupPicker.launch(
-                    new String[] {"application/json", "text/plain", "application/octet-stream"}));
-    LinearLayout.LayoutParams halfRight = new LinearLayout.LayoutParams(0, Ui.dp(a, 48), 1);
-    halfRight.leftMargin = Ui.dp(a, 6);
-    backupRow.addView(restoreBtn, halfRight);
-    dataCol.addView(backupRow);
-    box.addView(dataCol);
+                    new String[] {"application/json", "text/plain", "application/octet-stream"})));
+    data.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_pdf,
+            "阅读本地 PDF",
+            "在应用内查看原始课表页面",
+            chevron(),
+            0,
+            1,
+            () -> a.pdfViewer.launch(new String[] {"application/pdf"})));
+    addGroup(box, data);
 
     TextView footer =
         Ui.note(a, "版本 1.0.0 · Java / Material 3 Expressive\n图标沿用 YIClass；课程核心与构建独立重写。");
     footer.setGravity(Gravity.CENTER_HORIZONTAL);
-    footer.setPadding(0, Ui.dp(a, 18), 0, Ui.dp(a, 12));
+    footer.setPadding(0, Ui.dp(a, 24), 0, Ui.dp(a, 12));
     box.addView(footer);
     return Ui.scroll(a, box);
+  }
+
+  private View chevron() {
+    return Ui.icon(a, R.drawable.ic_chevron_right, 24, Ui.muted(a));
+  }
+
+  private View permissionItem(
+      int icon, String title, String supporting, boolean granted, Runnable action) {
+    View trailing =
+        granted
+            ? Ui.statusBadge(a, "已开启", true)
+            : Ui.filledButton(a, "开启", action);
+    return Ui.listItem(a, icon, title, supporting, trailing, 0, 1, action);
+  }
+
+  /** Re-applies segmented shapes once the group size is known. */
+  private void addGroup(LinearLayout box, List<View> items) {
+    for (int i = 0; i < items.size(); i++) {
+      View v = items.get(i);
+      if (v instanceof MaterialCardView card) {
+        card.setShapeAppearanceModel(Ui.segment(a, i, items.size()));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = Ui.dp(a, i == items.size() - 1 ? 0 : 2);
+        card.setLayoutParams(lp);
+      }
+      box.addView(v);
+    }
   }
 
   void requestNotificationPermission(boolean currentlyEnabled) {
@@ -263,6 +347,7 @@ final class SettingsScreen {
                 + "• 开机广播恢复：重启或修改时区后自动重排下一次提醒，无常驻后台服务。\n"
                 + "• 本地文件访问：通过系统文件选择器单次读取你选中的 PDF 或备份文件。"));
     new MaterialAlertDialogBuilder(a)
+        .setIcon(R.drawable.ic_privacy_tip)
         .setTitle("权限与隐私说明")
         .setView(Ui.scroll(a, box))
         .setPositiveButton("知道了", null)
@@ -273,20 +358,9 @@ final class SettingsScreen {
   }
 
   private void section(LinearLayout box, String title) {
-    TextView h = Ui.text(a, title, 16, Ui.primary(a));
-    h.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-    h.setPadding(Ui.dp(a, 4), Ui.dp(a, 20), 0, Ui.dp(a, 10));
+    TextView h = Ui.sectionHeader(a, title);
+    h.setPadding(Ui.dp(a, 8), Ui.dp(a, 22), 0, Ui.dp(a, 10));
     box.addView(h);
-  }
-
-  private void sectionWithBadge(LinearLayout box, String title, String badge, boolean active) {
-    LinearLayout row = Ui.row(a);
-    row.setPadding(Ui.dp(a, 4), Ui.dp(a, 18), Ui.dp(a, 4), Ui.dp(a, 10));
-    TextView h = Ui.text(a, title, 16, Ui.primary(a));
-    h.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-    row.addView(h, new LinearLayout.LayoutParams(0, -2, 1));
-    row.addView(Ui.statusBadge(a, badge, active));
-    box.addView(row);
   }
 
   void term() {

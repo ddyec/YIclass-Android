@@ -2,11 +2,13 @@ package com.ddyec.yiclass.ui;
 
 import android.net.Uri;
 import android.widget.*;
+import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.ai.AssistantClient;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.ddyec.yiclass.importer.PdfImporter;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.loadingindicator.LoadingIndicator;
 import com.google.android.material.textfield.TextInputEditText;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -21,10 +23,17 @@ final class ImportFlow {
   }
 
   void pdf(Uri uri) {
+    LinearLayout progress = Ui.row(a);
+    progress.setPadding(Ui.dp(a, 24), Ui.dp(a, 8), Ui.dp(a, 24), Ui.dp(a, 8));
+    progress.addView(new LoadingIndicator(a));
+    TextView progressText = Ui.note(a, "识别课程、星期、节次和单双周…");
+    progressText.setPadding(Ui.dp(a, 12), 0, 0, 0);
+    progress.addView(progressText, new LinearLayout.LayoutParams(0, -2, 1));
     var loading =
         new MaterialAlertDialogBuilder(a)
+            .setIcon(R.drawable.ic_pdf)
             .setTitle("正在读取本地 PDF")
-            .setMessage("识别课程、星期、节次和单双周…")
+            .setView(progress)
             .setCancelable(false)
             .show();
     a.worker.execute(
@@ -80,9 +89,12 @@ final class ImportFlow {
                 + " 条重复项。可取消不需要导入的课程。\n\n"
                 + String.join("\n", result.warnings())));
     TextInputEditText term = Ui.field(box, "第1周的周一（务必核对）", a.settings.term().toString(), false);
-    box.addView(Ui.button(a, "查看原始 PDF", () -> new PdfPreview(a).show(uri)));
+    box.addView(
+        Ui.withIcon(Ui.tonalButton(a, "查看原始 PDF", () -> new PdfPreview(a).show(uri)), R.drawable.ic_pdf),
+        Ui.wrap(a, 0, 12));
     List<android.widget.CheckBox> selections = new ArrayList<>();
-    for (Item item : fresh) {
+    for (int index = 0; index < fresh.size(); index++) {
+      Item item = fresh.get(index);
       var c = new com.google.android.material.checkbox.MaterialCheckBox(a);
       c.setChecked(true);
       c.setText(
@@ -99,12 +111,23 @@ final class ImportFlow {
               + item.location
               + " · "
               + item.teacher);
-      c.setPadding(0, Ui.dp(a, 8), 0, Ui.dp(a, 8));
+      c.setPadding(Ui.dp(a, 4), Ui.dp(a, 10), Ui.dp(a, 12), Ui.dp(a, 10));
       selections.add(c);
-      box.addView(c);
+      // Segmented Expressive list row.
+      com.google.android.material.card.MaterialCardView row =
+          new com.google.android.material.card.MaterialCardView(a);
+      row.setCardElevation(0);
+      row.setStrokeWidth(0);
+      row.setCardBackgroundColor(Ui.surfaceContainer(a));
+      row.setShapeAppearanceModel(Ui.segment(a, index, fresh.size()));
+      row.addView(c);
+      LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+      rowLp.bottomMargin = Ui.dp(a, 2);
+      box.addView(row, rowLp);
     }
     var dialog =
         new MaterialAlertDialogBuilder(a)
+            .setIcon(R.drawable.ic_upload_file)
             .setTitle("核对导入结果")
             .setView(Ui.scroll(a, box))
             .setNegativeButton("取消", null)
@@ -186,6 +209,7 @@ final class ImportFlow {
                 () -> {
                   Store.Snapshot base = a.store.snapshot();
                   new MaterialAlertDialogBuilder(a)
+                      .setIcon(R.drawable.ic_restore)
                       .setTitle("恢复备份")
                       .setMessage(
                           "将用备份中的 "

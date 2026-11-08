@@ -1,0 +1,11 @@
+<resources>
+    <!-- Home-screen widget tokens (brand scheme; Android 12+ uses the system dynamic palette). -->
+    <color name="widget_surface">#F4F2FA</color>
+    <color name="widget_container">#DDE1FF</color>
+    <color name="widget_on_container">#0D39B2</color>
+    <color name="widget_title">#1A1B21</color>
+    <color name="widget_text">#454651</color>
+    <color name="widget_accent">#3254CB</color>
+    <dimen name="widget_radius">28dp</dimen>
+    <dimen name="widget_inner_radius">16dp</dimen>
+</resources>

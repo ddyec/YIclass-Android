@@ -60,21 +60,27 @@ final class PdfPreview {
             }
           };
       LinearLayout buttons = Ui.row(a);
+      buttons.setPadding(Ui.dp(a, 20), 0, Ui.dp(a, 20), Ui.dp(a, 8));
+      label.setGravity(android.view.Gravity.CENTER);
       buttons.addView(
-          Ui.button(
+          Ui.iconButton(
               a,
+              com.ddyec.yiclass.R.drawable.ic_chevron_left,
               "上一页",
+              true,
               () -> {
                 if (index > 0) {
                   index--;
                   render.run();
                 }
               }));
-      buttons.addView(label);
+      buttons.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
       buttons.addView(
-          Ui.button(
+          Ui.iconButton(
               a,
+              com.ddyec.yiclass.R.drawable.ic_chevron_right,
               "下一页",
+              true,
               () -> {
                 if (index + 1 < renderer.getPageCount()) {
                   index++;
@@ -82,10 +88,16 @@ final class PdfPreview {
                 }
               }));
       box.addView(buttons);
-      box.addView(Ui.scroll(a, image));
+      com.google.android.material.card.MaterialCardView page = Ui.surfaceCard(a);
+      page.setRadius(Ui.dp(a, 16));
+      page.addView(Ui.scroll(a, image));
+      LinearLayout.LayoutParams pageLp = new LinearLayout.LayoutParams(-1, -2);
+      pageLp.setMargins(Ui.dp(a, 20), 0, Ui.dp(a, 20), 0);
+      box.addView(page, pageLp);
       render.run();
       var dialog =
           new MaterialAlertDialogBuilder(a)
+              .setIcon(com.ddyec.yiclass.R.drawable.ic_pdf)
               .setTitle("原始课表 PDF")
               .setView(box)
               .setPositiveButton("关闭", null)

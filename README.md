@@ -1,6 +1,6 @@
 # YI课表 · Android 原生版
 
-Java + Material 3，从空仓库重新实现课程核心、存储和构建。只复用 YIClass 品牌图标，不依赖 Flutter、Dart 或旧应用逻辑。
+Java + Material 3 Expressive，从空仓库重新实现课程核心、存储和构建。只复用 YIClass 品牌图标，不依赖 Flutter、Dart 或旧应用逻辑。
 
 ## 已实现
 
@@ -13,7 +13,7 @@ Java + Material 3，从空仓库重新实现课程核心、存储和构建。只
 - 可调整大小的桌面课表组件，显示今日及接下来七天内最近的安排，点击进入应用。
 - 右下角书页入口的 AI 助手，默认 DeepSeek 兼容接口，可配置 HTTPS 地址、模型和 Key；支持咨询、调课、增删课程、排日程；同一次会话支持补充信息。
 - AI 仅生成方案：本地验证、变更清单、冲突提示、用户确认、版本检查后一次性入库。单次调课保留其他周次。
-- 浅色、深色、跟随系统；Android Keystore 加密保存 API Key；JSON 备份不包含 Key。
+- Material 3 Expressive 界面：连接式按钮组、形状变换按钮、分段列表、Expressive 形状、LoadingIndicator、弹性导航栏与 FAB；浅色、深色、跟随系统，Android 12+ 可选动态配色；Android Keystore 加密保存 API Key；JSON 备份不包含 Key。
 
 ## 运行与构建
 
@@ -52,7 +52,7 @@ PDF 本身不提供钟点或开学首周日期。首次导入前，请核对设�
 
 ```text
 core/      纯 Java：课程、周次、冲突、时间计算、PDF 表格与 AI 方案验证
-app/       Android：Material 3 界面、SQLite、SAF 文件访问、PDFBox、提醒、组件、AI
+app/       Android：Material 3 Expressive 界面、SQLite、SAF 文件访问、PDFBox、提醒、组件、AI
 docs/      架构、验证记录与界面截图
 ```
 

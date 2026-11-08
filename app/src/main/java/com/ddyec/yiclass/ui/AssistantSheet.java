@@ -1,13 +1,18 @@
 package com.ddyec.yiclass.ui;
 
+import android.content.res.ColorStateList;
 import android.view.*;
 import android.widget.*;
+import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.ai.AssistantClient;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.google.android.material.bottomsheet.*;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.loadingindicator.LoadingIndicator;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
@@ -23,25 +28,44 @@ final class AssistantSheet {
   void show() {
     BottomSheetDialog dialog = new BottomSheetDialog(a);
     LinearLayout box = Ui.column(a);
-    Ui.inset(box, 22);
+    box.setPadding(Ui.dp(a, 24), 0, Ui.dp(a, 24), Ui.dp(a, 24));
     box.addView(Ui.sheetHandle(a));
-    box.addView(
-        Ui.pillBadge(
+    // Expressive header: shape mark + emphasized headline.
+    LinearLayout header = Ui.row(a);
+    header.addView(
+        Ui.shapeIcon(
             a,
-            "AI 时间规划师 · 本机预审确认",
+            ExpressiveShapes.SUNNY,
+            R.drawable.ic_auto_awesome,
             Ui.primaryContainer(a),
-            Ui.onPrimaryContainer(a)));
-    box.addView(Ui.heading(a, "你的时间助手"));
+            Ui.onPrimaryContainer(a),
+            56,
+            28));
+    LinearLayout headText = Ui.column(a);
+    headText.setPadding(Ui.dp(a, 14), 0, 0, 0);
+    TextView headTitle = Ui.heading(a, "你的时间助手");
+    headTitle.setPadding(0, 0, 0, 0);
+    headText.addView(headTitle);
+    headText.addView(
+        Ui.label(a, "AI 时间规划师 · 本机预审确认", Ui.primary(a)));
+    header.addView(headText, new LinearLayout.LayoutParams(0, -2, 1));
+    box.addView(header, Ui.wrap(a, 0, 4));
     box.addView(Ui.note(a, "调课、安排自习、添加或删除日程。每次变更都先给你看，确认后保存。"));
-    LinearLayout examples = Ui.column(a);
     TextInputEditText input = Ui.field(box, "想怎么安排？", "", true);
+    Ui.startIcon(input, R.drawable.ic_edit_calendar);
+    // Suggestion chips.
+    ChipGroup examples = new ChipGroup(a);
+    examples.setChipSpacingVertical(Ui.dp(a, 4));
     for (String text : new String[] {"检查本周是否有时间冲突", "帮我在明天下午安排一小时自习", "把明天的篮球课调到周五下午"}) {
-      MaterialButton exBtn = Ui.tonalButton(a, "✦ " + text, () -> input.setText(text));
-      LinearLayout.LayoutParams exLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 44));
-      exLp.bottomMargin = Ui.dp(a, 6);
-      examples.addView(exBtn, exLp);
+      Chip chip = new Chip(a);
+      chip.setText(text);
+      chip.setChipIconResource(R.drawable.ic_auto_awesome);
+      chip.setChipIconVisible(true);
+      chip.setChipIconTint(ColorStateList.valueOf(Ui.primary(a)));
+      chip.setOnClickListener(v -> input.setText(text));
+      examples.addView(chip);
     }
-    box.addView(examples);
+    box.addView(examples, Ui.wrap(a, 0, 4));
     TextView status =
         Ui.note(
             a,
@@ -49,13 +73,22 @@ final class AssistantSheet {
                 + a.settings.get("endpoint", "https://api.deepseek.com")
                 + "\n发送时会提交当前课表和这条请求，不发送 PDF 文件。请勿输入无关隐私。");
     box.addView(status);
+    LoadingIndicator loading = new LoadingIndicator(a);
+    loading.setVisibility(View.GONE);
+    LinearLayout.LayoutParams loadingLp = new LinearLayout.LayoutParams(-2, -2);
+    loadingLp.gravity = Gravity.CENTER_HORIZONTAL;
+    box.addView(loading, loadingLp);
     LinearLayout answer = Ui.column(a);
     box.addView(answer);
-    MaterialButton send = Ui.filledButton(a, "生成安排建议", () -> {});
-    LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
-    sendLp.bottomMargin = Ui.dp(a, 8);
+    MaterialButton send =
+        Ui.withIcon(Ui.heroButton(a, "生成安排建议", () -> {}), R.drawable.ic_send);
+    LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(-1, -2);
+    sendLp.topMargin = Ui.dp(a, 8);
+    sendLp.bottomMargin = Ui.dp(a, 4);
     box.addView(send, sendLp);
-    box.addView(Ui.button(a, "配置 AI 服务", () -> new SettingsScreen(a).api()));
+    box.addView(
+        Ui.withIcon(Ui.textButton(a, "配置 AI 服务", () -> new SettingsScreen(a).api()), R.drawable.ic_key),
+        new LinearLayout.LayoutParams(-1, -2));
     send.setOnClickListener(
         v -> {
           String question = Ui.value(input);
@@ -83,6 +116,7 @@ final class AssistantSheet {
           String term = a.settings.term().toString();
           String zone = a.settings.zone().getId();
           send.setEnabled(false);
+          loading.setVisibility(View.VISIBLE);
           status.setText("正在生成建议…");
           answer.removeAllViews();
           a.worker.execute(
@@ -97,10 +131,12 @@ final class AssistantSheet {
                       () -> {
                         if (a.isDestroyed() || !dialog.isShowing()) return;
                         send.setEnabled(true);
+                        loading.setVisibility(View.GONE);
                         status.setText("建议已生成 · 尚未修改课表");
                         history.add(new AssistantClient.Turn("user", question));
                         history.add(new AssistantClient.Turn("assistant", Store.JSON.toJson(plan)));
                         MaterialCardView resultCard = Ui.surfaceCard(a);
+                        resultCard.setLayoutParams(Ui.wrap(a, 8, 4));
                         LinearLayout resultBox = Ui.column(a);
                         Ui.inset(resultBox, 16);
                         TextView explanation = Ui.note(a, plan.message);
@@ -152,7 +188,7 @@ final class AssistantSheet {
                                           ? "本地检查：未发现时间冲突。"
                                           : "本地检查发现冲突：\n" + String.join("\n", conflicts))));
                           var apply =
-                              Ui.filledButton(
+                              Ui.heroButton(
                                   a,
                                   "审阅并应用 " + plan.operations.size() + " 项变更",
                                   () -> {
@@ -171,7 +207,7 @@ final class AssistantSheet {
                                           dialog.dismiss();
                                         });
                                   });
-                          resultBox.addView(apply);
+                          resultBox.addView(apply, Ui.wrap(a, 8, 0));
                         }
                         resultCard.addView(resultBox);
                         answer.addView(resultCard);
@@ -181,6 +217,7 @@ final class AssistantSheet {
                       () -> {
                         if (a.isDestroyed() || !dialog.isShowing()) return;
                         send.setEnabled(true);
+                        loading.setVisibility(View.GONE);
                         status.setText("未能生成建议，课表没有变化。请检查网络、Key和模型设置。");
                         a.error(e);
                       });

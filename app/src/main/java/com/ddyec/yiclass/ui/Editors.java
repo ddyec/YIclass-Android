@@ -1,12 +1,16 @@
 package com.ddyec.yiclass.ui;
 
-import android.app.TimePickerDialog;
 import android.view.*;
 import android.widget.*;
+import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.Store;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
@@ -32,75 +36,146 @@ final class Editors {
     if (original != null && occurrence != null) draft.date = occurrence.toString();
     BottomSheetDialog dialog = new BottomSheetDialog(a);
     LinearLayout box = Ui.column(a);
-    Ui.inset(box, 22);
+    box.setPadding(Ui.dp(a, 24), 0, Ui.dp(a, 24), Ui.dp(a, 24));
     box.addView(Ui.sheetHandle(a));
-    box.addView(
-        Ui.pillBadge(
+    LinearLayout header = Ui.row(a);
+    header.addView(
+        Ui.shapeIcon(
             a,
-            event ? "日程与待办 · EXPRESSIVE" : "课程安排 · EXPRESSIVE",
-            Ui.primaryContainer(a),
-            Ui.onPrimaryContainer(a)));
-    box.addView(
+            event ? ExpressiveShapes.COOKIE_6 : ExpressiveShapes.CLOVER_4,
+            event ? R.drawable.ic_event : R.drawable.ic_school,
+            event ? Ui.tertiaryContainer(a) : Ui.primaryContainer(a),
+            event ? Ui.onTertiaryContainer(a) : Ui.onPrimaryContainer(a),
+            52,
+            26));
+    LinearLayout headText = Ui.column(a);
+    headText.setPadding(Ui.dp(a, 14), 0, 0, 0);
+    TextView headTitle =
         Ui.heading(
             a,
-            original == null ? (event ? "新建日程" : "添加课程") : occurrence == null ? "编辑安排" : "编辑本次课程"));
+            original == null ? (event ? "新建日程" : "添加课程") : occurrence == null ? "编辑安排" : "编辑本次课程");
+    headTitle.setPadding(0, 0, 0, 0);
+    headText.addView(headTitle);
+    headText.addView(Ui.label(a, event ? "日程与待办" : "课程安排", Ui.primary(a)));
+    header.addView(headText, new LinearLayout.LayoutParams(0, -2, 1));
+    box.addView(header, Ui.wrap(a, 0, 12));
     if (occurrence != null && original != null)
       box.addView(Ui.note(a, "仅修改 " + occurrence + "，其他周次不受影响。"));
+
+    // Type: connected button group instead of a spinner.
+    int[] typeIndex = {"EVENT".equals(draft.type) ? 1 : 0};
+    View[] courseOnly = new View[2];
+    MaterialButtonToggleGroup type =
+        Ui.connectedGroup(
+            a,
+            new String[] {"课程", "日程与待办"},
+            new int[] {R.drawable.ic_school, R.drawable.ic_event},
+            typeIndex[0],
+            0,
+            n -> {
+              typeIndex[0] = n;
+              for (View v : courseOnly) if (v != null) v.setVisibility(n == 0 ? View.VISIBLE : View.GONE);
+            });
+    LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 48));
+    typeLp.bottomMargin = Ui.dp(a, 14);
+    box.addView(type, typeLp);
+
     TextInputEditText title = Ui.field(box, "名称", draft.title, false);
     TextInputEditText location = Ui.field(box, "地点", draft.location, false);
+    Ui.startIcon(location, R.drawable.ic_location);
     TextInputEditText teacher = Ui.field(box, "教师 / 联系人", draft.teacher, false);
-    Spinner type = new Spinner(a);
-    type.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
-    type.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
-    type.setAdapter(
-        new ArrayAdapter<>(
-            a,
-            android.R.layout.simple_spinner_dropdown_item,
-            new String[] {"循环课程 / 单次课程", "日程与待办"}));
-    type.setSelection("EVENT".equals(draft.type) ? 1 : 0);
-    LinearLayout.LayoutParams spinnerLp1 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
-    spinnerLp1.bottomMargin = Ui.dp(a, 10);
-    box.addView(type, spinnerLp1);
+    Ui.startIcon(teacher, R.drawable.ic_person);
     TextInputEditText date = Ui.field(box, "指定日期 YYYY-MM-DD（循环课留空）", draft.date, false);
     date.setInputType(
         android.text.InputType.TYPE_CLASS_DATETIME
             | android.text.InputType.TYPE_DATETIME_VARIATION_DATE);
-    Spinner day = new Spinner(a);
-    day.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
-    day.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
-    day.setAdapter(
-        new ArrayAdapter<>(
+    Ui.endAction(date, R.drawable.ic_event, "选择日期", () -> pickDate(date));
+
+    // Weekday: connected group (course only).
+    LinearLayout dayBlock = Ui.column(a);
+    dayBlock.addView(Ui.label(a, "上课星期", Ui.muted(a)), Ui.wrap(a, 0, 6));
+    int[] dayIndex = {Math.max(0, Math.min(6, draft.day - 1))};
+    MaterialButtonToggleGroup day =
+        Ui.connectedGroup(
             a,
-            android.R.layout.simple_spinner_dropdown_item,
-            new String[] {"周一", "周二", "周三", "周四", "周五", "周六", "周日"}));
-    day.setSelection(draft.day - 1);
-    LinearLayout.LayoutParams spinnerLp2 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
-    spinnerLp2.bottomMargin = Ui.dp(a, 10);
-    box.addView(day, spinnerLp2);
+            new String[] {"一", "二", "三", "四", "五", "六", "日"},
+            null,
+            dayIndex[0],
+            0,
+            n -> dayIndex[0] = n);
+    dayBlock.addView(day, new LinearLayout.LayoutParams(-1, Ui.dp(a, 48)));
+    box.addView(dayBlock, Ui.wrap(a, 0, 12));
     TextInputEditText weeks = Ui.field(box, "循环周次，例如 1-16 或 1-15(单)", draft.weeks, false);
-    TextInputEditText start = Ui.field(box, "开始时间 HH:mm", Schedule.time(draft.start), false);
-    TextInputEditText end = Ui.field(box, "结束时间 HH:mm", Schedule.time(draft.end), false);
-    start.setOnClickListener(v -> pickTime(start));
-    end.setOnClickListener(v -> pickTime(end));
+    courseOnly[0] = dayBlock;
+    courseOnly[1] = Ui.layoutOf(weeks);
+    if (typeIndex[0] == 1) for (View v : courseOnly) if (v != null) v.setVisibility(View.GONE);
+
+    LinearLayout times = Ui.row(a);
+    times.setGravity(Gravity.TOP);
+    LinearLayout startCol = Ui.column(a), endCol = Ui.column(a);
+    TextInputEditText start = Ui.field(startCol, "开始 HH:mm", Schedule.time(draft.start), false);
+    TextInputEditText end = Ui.field(endCol, "结束 HH:mm", Schedule.time(draft.end), false);
+    Ui.endAction(start, R.drawable.ic_schedule, "选择开始时间", () -> pickTime(start, "开始时间"));
+    Ui.endAction(end, R.drawable.ic_schedule, "选择结束时间", () -> pickTime(end, "结束时间"));
+    LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -2, 1);
+    half.rightMargin = Ui.dp(a, 6);
+    times.addView(startCol, half);
+    LinearLayout.LayoutParams half2 = new LinearLayout.LayoutParams(0, -2, 1);
+    half2.leftMargin = Ui.dp(a, 6);
+    times.addView(endCol, half2);
+    box.addView(times);
     TextInputEditText reminder =
         Ui.field(box, "提前提醒（分钟，-1为关闭）", String.valueOf(draft.reminder), false);
     reminder.setInputType(
         android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-    Spinner color = new Spinner(a);
-    color.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
-    color.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
-    color.setAdapter(
-        new ArrayAdapter<>(
-            a,
-            android.R.layout.simple_spinner_dropdown_item,
-            new String[] {"玫瑰", "鸢尾", "薄荷", "杏黄", "浅紫", "雾蓝"}));
-    color.setSelection(Math.floorMod(draft.color, 6));
-    LinearLayout.LayoutParams spinnerLp3 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
-    spinnerLp3.bottomMargin = Ui.dp(a, 10);
-    box.addView(color, spinnerLp3);
+    Ui.startIcon(reminder, R.drawable.ic_notifications);
+
+    // Color: Expressive swatches with shape morph on selection.
+    box.addView(Ui.label(a, "颜色", Ui.muted(a)), Ui.wrap(a, 0, 8));
+    int[] colorIndex = {Math.floorMod(draft.color, 6)};
+    String[] colorNames = {"玫瑰", "鸢尾", "薄荷", "杏黄", "浅紫", "雾蓝"};
+    LinearLayout swatches = Ui.row(a);
+    List<FrameLayout> swatchViews = new ArrayList<>();
+    Runnable paintSwatches =
+        () -> {
+          for (int i = 0; i < swatchViews.size(); i++) {
+            boolean on = i == colorIndex[0];
+            FrameLayout f = swatchViews.get(i);
+            f.setBackground(
+                Ui.expressiveShape(
+                    on ? ExpressiveShapes.COOKIE_9 : ExpressiveShapes.CIRCLE, Ui.courseAccent(a, i)));
+            f.getChildAt(0).setVisibility(on ? View.VISIBLE : View.INVISIBLE);
+            f.setSelected(on);
+          }
+        };
+    for (int i = 0; i < 6; i++) {
+      final int index = i;
+      FrameLayout f =
+          Ui.shapeIcon(
+              a,
+              ExpressiveShapes.CIRCLE,
+              R.drawable.ic_check,
+              Ui.courseAccent(a, i),
+              Ui.courseColor(a, i),
+              40,
+              22);
+      f.setContentDescription(colorNames[i]);
+      f.setClickable(true);
+      f.setOnClickListener(
+          v -> {
+            colorIndex[0] = index;
+            paintSwatches.run();
+          });
+      swatchViews.add(f);
+      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Ui.dp(a, 40), Ui.dp(a, 40));
+      sp.rightMargin = Ui.dp(a, 12);
+      swatches.addView(f, sp);
+    }
+    paintSwatches.run();
+    box.addView(swatches, Ui.wrap(a, 0, 16));
     TextInputEditText notes = Ui.field(box, "备注", draft.notes, true);
     MaterialButton saveBtn =
-        Ui.filledButton(
+        Ui.heroButton(
             a,
             "保存安排",
             () -> {
@@ -109,14 +184,14 @@ final class Editors {
                 draft.location = Ui.value(location);
                 draft.teacher = Ui.value(teacher);
                 draft.notes = Ui.value(notes);
-                draft.type = type.getSelectedItemPosition() == 0 ? "COURSE" : "EVENT";
+                draft.type = typeIndex[0] == 0 ? "COURSE" : "EVENT";
                 draft.date = Ui.value(date);
-                draft.day = day.getSelectedItemPosition() + 1;
+                draft.day = dayIndex[0] + 1;
                 draft.weeks = Ui.value(weeks);
                 draft.start = Schedule.minute(Ui.value(start));
                 draft.end = Schedule.minute(Ui.value(end));
                 draft.reminder = Integer.parseInt(Ui.value(reminder));
-                draft.color = color.getSelectedItemPosition();
+                draft.color = colorIndex[0];
                 if ("EVENT".equals(draft.type) && draft.date.isEmpty())
                   throw new IllegalArgumentException("日程需要指定日期");
                 if (!draft.date.isEmpty())
@@ -151,10 +226,12 @@ final class Editors {
                 a.error(e);
               }
             });
-    LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
-    saveLp.bottomMargin = Ui.dp(a, 8);
+    Ui.withIcon(saveBtn, R.drawable.ic_check);
+    LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(-1, -2);
+    saveLp.topMargin = Ui.dp(a, 8);
+    saveLp.bottomMargin = Ui.dp(a, 4);
     box.addView(saveBtn, saveLp);
-    box.addView(Ui.tonalButton(a, "取消", dialog::dismiss));
+    box.addView(Ui.textButton(a, "取消", dialog::dismiss), new LinearLayout.LayoutParams(-1, -2));
     dialog.setContentView(Ui.scroll(a, box));
     dialog
         .getBehavior()
@@ -165,19 +242,40 @@ final class Editors {
     dialog.show();
   }
 
-  private void pickTime(TextInputEditText field) {
+  private void pickTime(TextInputEditText field, String title) {
     int minute;
     try {
       minute = Schedule.minute(Ui.value(field));
     } catch (Exception ignored) {
       minute = 510;
     }
-    new TimePickerDialog(
-            a,
-            (view, h, m) -> field.setText(Schedule.time(h * 60 + m)),
-            minute / 60,
-            minute % 60,
-            true)
-        .show();
+    MaterialTimePicker picker =
+        new MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(minute / 60)
+            .setMinute(minute % 60)
+            .setTitleText(title)
+            .build();
+    picker.addOnPositiveButtonClickListener(
+        v -> field.setText(Schedule.time(picker.getHour() * 60 + picker.getMinute())));
+    picker.show(a.getSupportFragmentManager(), "time");
+  }
+
+  private void pickDate(TextInputEditText field) {
+    LocalDate initial;
+    try {
+      initial = LocalDate.parse(Ui.value(field));
+    } catch (Exception ignored) {
+      initial = a.selected;
+    }
+    MaterialDatePicker<Long> picker =
+        MaterialDatePicker.Builder.datePicker()
+            .setTitleText("选择日期")
+            .setSelection(initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+            .build();
+    picker.addOnPositiveButtonClickListener(
+        millis ->
+            field.setText(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()));
+    picker.show(a.getSupportFragmentManager(), "date");
   }
 }

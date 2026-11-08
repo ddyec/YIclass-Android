@@ -1,34 +1,80 @@
 <resources>
-    <style name="Theme.YIClass" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#3657CE</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#DCE3FF</item>
-        <item name="colorOnPrimaryContainer">#091D65</item>
-        <item name="colorSecondary">#505B7A</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#D8E1FF</item>
-        <item name="colorOnSecondaryContainer">#0D1833</item>
-        <item name="colorTertiary">#7C4A7F</item>
-        <item name="colorOnTertiary">#FFFFFF</item>
-        <item name="colorTertiaryContainer">#FFD6FA</item>
-        <item name="colorOnTertiaryContainer">#310837</item>
-        <item name="colorSurface">#F7F8FE</item>
-        <item name="colorOnSurface">#171B26</item>
-        <item name="colorSurfaceVariant">#E1E4F2</item>
-        <item name="colorOnSurfaceVariant">#434756</item>
-        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#F1F3FC</item>
-        <item name="colorSurfaceContainer">#EBEEF8</item>
-        <item name="colorSurfaceContainerHigh">#E4E8F4</item>
-        <item name="colorSurfaceContainerHighest">#DEE2EE</item>
-        <item name="colorOutline">#737788</item>
-        <item name="colorOutlineVariant">#C4C7D6</item>
-        <item name="android:colorAccent">#3657CE</item>
+    <!--
+        Material 3 Expressive base theme.
+        Colors are a full M3 tonal scheme generated from the YIClass brand seed #3657CE
+        (primary T40 / container T90 / on-container T30, matching the Expressive token mapping).
+        Users on Android 12+ can opt into wallpaper-based dynamic color in Settings.
+    -->
+    <style name="Base.Theme.YIClass" parent="Theme.Material3Expressive.DayNight.NoActionBar">
+        <!-- Expressive shape scale -->
+        <item name="shapeAppearanceCornerExtraSmall">@style/ShapeAppearance.YIClass.ExtraSmall</item>
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.YIClass.Small</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.YIClass.Medium</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.YIClass.Large</item>
+        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.YIClass.ExtraLarge</item>
+
+        <!-- Expressive component defaults used by programmatic views -->
+        <item name="yiButtonFilledMedium">@style/Widget.YIClass.Button.Filled.Medium</item>
+        <item name="yiButtonTonalMedium">@style/Widget.YIClass.Button.Tonal.Medium</item>
+        <item name="yiIconButtonTonalMedium">@style/Widget.YIClass.IconButton.Tonal.Medium</item>
+        <item name="yiTextField">@style/Widget.YIClass.TextField</item>
+        <item name="chipStyle">@style/Widget.Material3.Chip.Suggestion</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.YIClass.BottomSheetDialog</item>
+
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
+
+    <style name="Theme.YIClass" parent="Base.Theme.YIClass">
+        <item name="colorPrimary">#3254CB</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#DDE1FF</item>
+        <item name="colorOnPrimaryContainer">#0D39B2</item>
+        <item name="colorSecondary">#585D78</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#DDE1FF</item>
+        <item name="colorOnSecondaryContainer">#40455F</item>
+        <item name="colorTertiary">#7D4F75</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#FFD7F4</item>
+        <item name="colorOnTertiaryContainer">#63385C</item>
+        <item name="colorError">#BA1A1A</item>
+        <item name="colorOnError">#FFFFFF</item>
+        <item name="colorErrorContainer">#FFDAD6</item>
+        <item name="colorOnErrorContainer">#93000A</item>
+        <item name="colorSurface">#FBF8FF</item>
+        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
+        <item name="colorSurfaceContainerLow">#F4F2FA</item>
+        <item name="colorSurfaceContainer">#EFEDF4</item>
+        <item name="colorSurfaceContainerHigh">#E9E7EF</item>
+        <item name="colorSurfaceContainerHighest">#E3E1E9</item>
+        <item name="colorSurfaceDim">#DBD9E0</item>
+        <item name="colorSurfaceBright">#FBF8FF</item>
+        <item name="colorOnSurface">#1A1B21</item>
+        <item name="colorSurfaceInverse">#2F3036</item>
+        <item name="colorOnSurfaceInverse">#F2F0F7</item>
+        <item name="colorSurfaceVariant">#E1E1EF</item>
+        <item name="colorOnSurfaceVariant">#454651</item>
+        <item name="colorOutline">#757682</item>
+        <item name="colorOutlineVariant">#C5C5D3</item>
+        <item name="colorPrimaryInverse">#B8C4FF</item>
+        <item name="android:colorBackground">#FBF8FF</item>
+        <item name="colorOnBackground">#1A1B21</item>
+        <item name="colorPrimaryFixed">#DDE1FF</item>
+        <item name="colorPrimaryFixedDim">#B8C4FF</item>
+        <item name="colorOnPrimaryFixed">#001453</item>
+        <item name="colorOnPrimaryFixedVariant">#0D39B2</item>
+        <item name="colorSecondaryFixed">#DDE1FF</item>
+        <item name="colorSecondaryFixedDim">#C0C5E4</item>
+        <item name="colorOnSecondaryFixed">#151A31</item>
+        <item name="colorOnSecondaryFixedVariant">#40455F</item>
+        <item name="colorTertiaryFixed">#FFD7F4</item>
+        <item name="colorTertiaryFixedDim">#EDB5E1</item>
+        <item name="colorOnTertiaryFixed">#310C2E</item>
+        <item name="colorOnTertiaryFixedVariant">#63385C</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
     <string name="app_name">YI课表</string>
 </resources>
