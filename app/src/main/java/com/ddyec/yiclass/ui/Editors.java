@@ -6,6 +6,7 @@ import android.widget.*;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.Store;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
@@ -32,6 +33,13 @@ final class Editors {
     BottomSheetDialog dialog = new BottomSheetDialog(a);
     LinearLayout box = Ui.column(a);
     Ui.inset(box, 22);
+    box.addView(Ui.sheetHandle(a));
+    box.addView(
+        Ui.pillBadge(
+            a,
+            event ? "日程与待办 · EXPRESSIVE" : "课程安排 · EXPRESSIVE",
+            Ui.primaryContainer(a),
+            Ui.onPrimaryContainer(a)));
     box.addView(
         Ui.heading(
             a,
@@ -42,25 +50,33 @@ final class Editors {
     TextInputEditText location = Ui.field(box, "地点", draft.location, false);
     TextInputEditText teacher = Ui.field(box, "教师 / 联系人", draft.teacher, false);
     Spinner type = new Spinner(a);
+    type.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
+    type.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
     type.setAdapter(
         new ArrayAdapter<>(
             a,
             android.R.layout.simple_spinner_dropdown_item,
             new String[] {"循环课程 / 单次课程", "日程与待办"}));
     type.setSelection("EVENT".equals(draft.type) ? 1 : 0);
-    box.addView(type, new LinearLayout.LayoutParams(-1, Ui.dp(a, 48)));
+    LinearLayout.LayoutParams spinnerLp1 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
+    spinnerLp1.bottomMargin = Ui.dp(a, 10);
+    box.addView(type, spinnerLp1);
     TextInputEditText date = Ui.field(box, "指定日期 YYYY-MM-DD（循环课留空）", draft.date, false);
     date.setInputType(
         android.text.InputType.TYPE_CLASS_DATETIME
             | android.text.InputType.TYPE_DATETIME_VARIATION_DATE);
     Spinner day = new Spinner(a);
+    day.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
+    day.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
     day.setAdapter(
         new ArrayAdapter<>(
             a,
             android.R.layout.simple_spinner_dropdown_item,
             new String[] {"周一", "周二", "周三", "周四", "周五", "周六", "周日"}));
     day.setSelection(draft.day - 1);
-    box.addView(day, new LinearLayout.LayoutParams(-1, Ui.dp(a, 48)));
+    LinearLayout.LayoutParams spinnerLp2 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
+    spinnerLp2.bottomMargin = Ui.dp(a, 10);
+    box.addView(day, spinnerLp2);
     TextInputEditText weeks = Ui.field(box, "循环周次，例如 1-16 或 1-15(单)", draft.weeks, false);
     TextInputEditText start = Ui.field(box, "开始时间 HH:mm", Schedule.time(draft.start), false);
     TextInputEditText end = Ui.field(box, "结束时间 HH:mm", Schedule.time(draft.end), false);
@@ -71,16 +87,20 @@ final class Editors {
     reminder.setInputType(
         android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
     Spinner color = new Spinner(a);
+    color.setBackground(Ui.roundedBg(a, Ui.surfaceLow(a), 18, 1, Ui.outlineVariant(a)));
+    color.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), 0);
     color.setAdapter(
         new ArrayAdapter<>(
             a,
             android.R.layout.simple_spinner_dropdown_item,
             new String[] {"玫瑰", "鸢尾", "薄荷", "杏黄", "浅紫", "雾蓝"}));
     color.setSelection(Math.floorMod(draft.color, 6));
-    box.addView(color, new LinearLayout.LayoutParams(-1, Ui.dp(a, 48)));
+    LinearLayout.LayoutParams spinnerLp3 = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
+    spinnerLp3.bottomMargin = Ui.dp(a, 10);
+    box.addView(color, spinnerLp3);
     TextInputEditText notes = Ui.field(box, "备注", draft.notes, true);
-    box.addView(
-        Ui.button(
+    MaterialButton saveBtn =
+        Ui.filledButton(
             a,
             "保存安排",
             () -> {
@@ -130,8 +150,11 @@ final class Editors {
               } catch (Exception e) {
                 a.error(e);
               }
-            }));
-    box.addView(Ui.button(a, "取消", dialog::dismiss));
+            });
+    LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
+    saveLp.bottomMargin = Ui.dp(a, 8);
+    box.addView(saveBtn, saveLp);
+    box.addView(Ui.tonalButton(a, "取消", dialog::dismiss));
     dialog.setContentView(Ui.scroll(a, box));
     dialog
         .getBehavior()

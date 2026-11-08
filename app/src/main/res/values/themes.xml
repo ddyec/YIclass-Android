@@ -1,13 +1,33 @@
 <resources>
     <style name="Theme.YIClass" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#4564CB</item>
+        <item name="colorPrimary">#3657CE</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#DFE5FF</item>
-        <item name="colorOnPrimaryContainer">#152B75</item>
-        <item name="colorSecondaryContainer">#E7E8F2</item>
-        <item name="android:colorAccent">#4564CB</item>
+        <item name="colorPrimaryContainer">#DCE3FF</item>
+        <item name="colorOnPrimaryContainer">#091D65</item>
+        <item name="colorSecondary">#505B7A</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#D8E1FF</item>
+        <item name="colorOnSecondaryContainer">#0D1833</item>
+        <item name="colorTertiary">#7C4A7F</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#FFD6FA</item>
+        <item name="colorOnTertiaryContainer">#310837</item>
+        <item name="colorSurface">#F7F8FE</item>
+        <item name="colorOnSurface">#171B26</item>
+        <item name="colorSurfaceVariant">#E1E4F2</item>
+        <item name="colorOnSurfaceVariant">#434756</item>
+        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
+        <item name="colorSurfaceContainerLow">#F1F3FC</item>
+        <item name="colorSurfaceContainer">#EBEEF8</item>
+        <item name="colorSurfaceContainerHigh">#E4E8F4</item>
+        <item name="colorSurfaceContainerHighest">#DEE2EE</item>
+        <item name="colorOutline">#737788</item>
+        <item name="colorOutlineVariant">#C4C7D6</item>
+        <item name="android:colorAccent">#3657CE</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:fontFamily">sans</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
     <string name="app_name">YI课表</string>

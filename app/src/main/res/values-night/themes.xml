@@ -1,11 +1,32 @@
 <resources>
     <style name="Theme.YIClass" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#B7C4FF</item>
-        <item name="colorOnPrimary">#142A76</item>
-        <item name="colorPrimaryContainer">#2E438C</item>
-        <item name="colorOnPrimaryContainer">#DFE5FF</item>
-        <item name="android:colorAccent">#B7C4FF</item>
+        <item name="colorPrimary">#B6C4FF</item>
+        <item name="colorOnPrimary">#0A2978</item>
+        <item name="colorPrimaryContainer">#224090</item>
+        <item name="colorOnPrimaryContainer">#DCE3FF</item>
+        <item name="colorSecondary">#B9C5E7</item>
+        <item name="colorOnSecondary">#222D4A</item>
+        <item name="colorSecondaryContainer">#394462</item>
+        <item name="colorOnSecondaryContainer">#D8E1FF</item>
+        <item name="colorTertiary">#ECAFE9</item>
+        <item name="colorOnTertiary">#491D4D</item>
+        <item name="colorTertiaryContainer">#623465</item>
+        <item name="colorOnTertiaryContainer">#FFD6FA</item>
+        <item name="colorSurface">#0F131C</item>
+        <item name="colorOnSurface">#E2E5F2</item>
+        <item name="colorSurfaceVariant">#434756</item>
+        <item name="colorOnSurfaceVariant">#C4C7D6</item>
+        <item name="colorSurfaceContainerLowest">#0A0E16</item>
+        <item name="colorSurfaceContainerLow">#171B25</item>
+        <item name="colorSurfaceContainer">#1B202B</item>
+        <item name="colorSurfaceContainerHigh">#252A36</item>
+        <item name="colorSurfaceContainerHighest">#303542</item>
+        <item name="colorOutline">#8E91A1</item>
+        <item name="colorOutlineVariant">#434756</item>
+        <item name="android:colorAccent">#B6C4FF</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:fontFamily">sans</item>
+        <item name="android:fontFamily">sans-serif</item>
     </style>
 </resources>

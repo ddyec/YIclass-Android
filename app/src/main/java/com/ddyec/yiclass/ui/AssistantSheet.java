@@ -6,6 +6,8 @@ import com.ddyec.yiclass.ai.AssistantClient;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.google.android.material.bottomsheet.*;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
@@ -22,12 +24,23 @@ final class AssistantSheet {
     BottomSheetDialog dialog = new BottomSheetDialog(a);
     LinearLayout box = Ui.column(a);
     Ui.inset(box, 22);
+    box.addView(Ui.sheetHandle(a));
+    box.addView(
+        Ui.pillBadge(
+            a,
+            "AI 时间规划师 · 本机预审确认",
+            Ui.primaryContainer(a),
+            Ui.onPrimaryContainer(a)));
     box.addView(Ui.heading(a, "你的时间助手"));
     box.addView(Ui.note(a, "调课、安排自习、添加或删除日程。每次变更都先给你看，确认后保存。"));
     LinearLayout examples = Ui.column(a);
     TextInputEditText input = Ui.field(box, "想怎么安排？", "", true);
-    for (String text : new String[] {"检查本周是否有时间冲突", "帮我在明天下午安排一小时自习", "把明天的篮球课调到周五下午"})
-      examples.addView(Ui.button(a, text, () -> input.setText(text)));
+    for (String text : new String[] {"检查本周是否有时间冲突", "帮我在明天下午安排一小时自习", "把明天的篮球课调到周五下午"}) {
+      MaterialButton exBtn = Ui.tonalButton(a, "✦ " + text, () -> input.setText(text));
+      LinearLayout.LayoutParams exLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 44));
+      exLp.bottomMargin = Ui.dp(a, 6);
+      examples.addView(exBtn, exLp);
+    }
     box.addView(examples);
     TextView status =
         Ui.note(
@@ -38,8 +51,10 @@ final class AssistantSheet {
     box.addView(status);
     LinearLayout answer = Ui.column(a);
     box.addView(answer);
-    com.google.android.material.button.MaterialButton send = Ui.button(a, "生成安排建议", () -> {});
-    box.addView(send);
+    MaterialButton send = Ui.filledButton(a, "生成安排建议", () -> {});
+    LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 50));
+    sendLp.bottomMargin = Ui.dp(a, 8);
+    box.addView(send, sendLp);
     box.addView(Ui.button(a, "配置 AI 服务", () -> new SettingsScreen(a).api()));
     send.setOnClickListener(
         v -> {
@@ -85,9 +100,12 @@ final class AssistantSheet {
                         status.setText("建议已生成 · 尚未修改课表");
                         history.add(new AssistantClient.Turn("user", question));
                         history.add(new AssistantClient.Turn("assistant", Store.JSON.toJson(plan)));
+                        MaterialCardView resultCard = Ui.surfaceCard(a);
+                        LinearLayout resultBox = Ui.column(a);
+                        Ui.inset(resultBox, 16);
                         TextView explanation = Ui.note(a, plan.message);
                         explanation.setTextIsSelectable(true);
-                        answer.addView(explanation);
+                        resultBox.addView(explanation);
                         if (!plan.operations.isEmpty()) {
                           StringBuilder detail = new StringBuilder();
                           for (Plan.Operation op : plan.operations) {
@@ -125,7 +143,7 @@ final class AssistantSheet {
                                   .append(op.item.location)
                                   .append('\n');
                           }
-                          answer.addView(
+                          resultBox.addView(
                               Ui.note(
                                   a,
                                   detail
@@ -134,7 +152,7 @@ final class AssistantSheet {
                                           ? "本地检查：未发现时间冲突。"
                                           : "本地检查发现冲突：\n" + String.join("\n", conflicts))));
                           var apply =
-                              Ui.button(
+                              Ui.filledButton(
                                   a,
                                   "审阅并应用 " + plan.operations.size() + " 项变更",
                                   () -> {
@@ -153,8 +171,10 @@ final class AssistantSheet {
                                           dialog.dismiss();
                                         });
                                   });
-                          answer.addView(apply);
+                          resultBox.addView(apply);
                         }
+                        resultCard.addView(resultBox);
+                        answer.addView(resultCard);
                       });
                 } catch (Exception e) {
                   a.runOnUiThread(
