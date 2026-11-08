@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.YIClass" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#B7C4FF</item>
+        <item name="colorOnPrimary">#142A76</item>
+        <item name="colorPrimaryContainer">#2E438C</item>
+        <item name="colorOnPrimaryContainer">#DFE5FF</item>
+        <item name="android:colorAccent">#B7C4FF</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>

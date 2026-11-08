@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.YIClass" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#4564CB</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#DFE5FF</item>
+        <item name="colorOnPrimaryContainer">#152B75</item>
+        <item name="colorSecondaryContainer">#E7E8F2</item>
+        <item name="android:colorAccent">#4564CB</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <string name="app_name">YI课表</string>
+</resources>
