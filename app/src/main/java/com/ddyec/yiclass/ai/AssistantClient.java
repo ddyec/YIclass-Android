@@ -26,26 +26,29 @@ public final class AssistantClient {
         || base.getQuery() != null
         || base.getFragment() != null) throw new IllegalArgumentException("接口必须是有效的 HTTPS 地址");
     String url = rawEndpoint + "/chat/completions";
-    String model = settings.get("model", "deepseek-chat").trim();
-    boolean isReasoner = model.contains("reasoner");
+    String model = settings.model();
+    boolean thinkingEnabled = settings.thinking() || model.contains("reasoner");
 
     JsonObject body = new JsonObject();
     body.addProperty("model", model);
     body.addProperty("stream", false);
     body.addProperty("max_tokens", 4096);
-    if (!isReasoner) {
+    JsonObject thinking = new JsonObject();
+    thinking.addProperty("type", thinkingEnabled ? "enabled" : "disabled");
+    body.add("thinking", thinking);
+    if (!thinkingEnabled) {
       body.addProperty("temperature", 0.2);
-      JsonObject format = new JsonObject();
-      format.addProperty("type", "json_object");
-      body.add("response_format", format);
     }
+    JsonObject format = new JsonObject();
+    format.addProperty("type", "json_object");
+    body.add("response_format", format);
 
     JsonArray messages = new JsonArray();
     JsonObject system = new JsonObject();
     system.addProperty("role", "system");
     system.addProperty(
         "content",
-        "你是YI课表助手，严格输出合法的 json 对象（不要输出 markdown 代码块之外的多余文字）。"
+        "你是YIClass课表助手，严格输出合法的 json 对象（不要输出 markdown 代码块之外的多余文字）。"
             + "今天="
             + LocalDate.now(settings.zone())
             + "；学期第1周周一="

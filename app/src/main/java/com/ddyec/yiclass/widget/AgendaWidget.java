@@ -102,15 +102,12 @@ public class AgendaWidget extends AppWidgetProvider {
 
     int[] ends = settings.ends();
     int dailyCutoff = ends.length > 0 ? ends[ends.length - 1] : 1240;
-    boolean todayEnded =
-        activeCourse == null
-            && upcomingToday.isEmpty()
-            && (!allToday.isEmpty() || nowMinute >= dailyCutoff);
+    boolean showTomorrow = activeCourse == null && nowMinute >= dailyCutoff;
 
-    LocalDate displayDate = todayEnded ? today.plusDays(1) : today;
+    LocalDate displayDate = showTomorrow ? today.plusDays(1) : today;
     List<Item> coursesToShow = new ArrayList<>();
     if (activeCourse == null) {
-      if (!todayEnded) {
+      if (!showTomorrow) {
         coursesToShow.addAll(upcomingToday);
       } else {
         for (Item item : Schedule.on(all, displayDate, settings.term())) {
@@ -122,7 +119,7 @@ public class AgendaWidget extends AppWidgetProvider {
     String statusText;
     if (activeCourse != null) {
       statusText = "正在上课";
-    } else if (!todayEnded) {
+    } else if (!showTomorrow) {
       statusText =
           coursesToShow.isEmpty() ? "今日课程" : "今日待上 · " + coursesToShow.size() + "节";
     } else {
@@ -141,6 +138,10 @@ public class AgendaWidget extends AppWidgetProvider {
       view.setTextViewText(R.id.widget_title, statusText);
       view.setTextViewText(R.id.widget_date, dateText);
 
+      Bundle opts = manager.getAppWidgetOptions(id);
+      int minH = opts != null ? opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
+      int maxRows = minH > 0 && minH < 120 ? 2 : (minH >= 120 && minH < 180 ? 4 : ROW_IDS.length);
+
       if (activeCourse != null) {
         view.setViewVisibility(R.id.widget_active_box, View.VISIBLE);
         view.setViewVisibility(R.id.widget_list_box, View.GONE);
@@ -149,11 +150,7 @@ public class AgendaWidget extends AppWidgetProvider {
             R.id.widget_time,
             Schedule.time(activeCourse.start) + "–" + Schedule.time(activeCourse.end));
         view.setViewVisibility(R.id.widget_time, View.VISIBLE);
-        String loc =
-            activeCourse.location.isEmpty()
-                ? "正在上课"
-                : activeCourse.location
-                    + (activeCourse.teacher.isEmpty() ? "" : " · " + activeCourse.teacher);
+        String loc = formatSub(activeCourse, "正在上课");
         view.setTextViewText(R.id.widget_location, loc);
         view.setViewVisibility(R.id.widget_location, View.VISIBLE);
       } else if (!coursesToShow.isEmpty()) {
@@ -161,20 +158,19 @@ public class AgendaWidget extends AppWidgetProvider {
         view.setTextViewText(R.id.widget_content, first.title);
         view.setTextViewText(
             R.id.widget_time, Schedule.time(first.start) + "–" + Schedule.time(first.end));
-        view.setTextViewText(
-            R.id.widget_location, first.location.isEmpty() ? "地点待定" : first.location);
+        view.setTextViewText(R.id.widget_location, formatSub(first, "地点待定"));
 
         view.setViewVisibility(R.id.widget_active_box, View.GONE);
         view.setViewVisibility(R.id.widget_list_box, View.VISIBLE);
+        int visibleLimit = Math.min(coursesToShow.size(), maxRows);
         for (int i = 0; i < ROW_IDS.length; i++) {
-          if (i < coursesToShow.size()) {
+          if (i < visibleLimit) {
             Item item = coursesToShow.get(i);
             view.setViewVisibility(ROW_IDS[i], View.VISIBLE);
             view.setTextViewText(
                 ROW_TIME_IDS[i], Schedule.time(item.start) + "–" + Schedule.time(item.end));
             view.setTextViewText(ROW_TITLE_IDS[i], item.title);
-            view.setTextViewText(
-                ROW_LOC_IDS[i], item.location.isEmpty() ? "" : item.location);
+            view.setTextViewText(ROW_LOC_IDS[i], formatSub(item, "地点待定"));
           } else {
             view.setViewVisibility(ROW_IDS[i], View.GONE);
           }
@@ -183,9 +179,15 @@ public class AgendaWidget extends AppWidgetProvider {
         view.setViewVisibility(R.id.widget_active_box, View.VISIBLE);
         view.setViewVisibility(R.id.widget_list_box, View.GONE);
         view.setTextViewText(
-            R.id.widget_content, todayEnded ? "明天没有课程安排" : "今天没有更多课程");
+            R.id.widget_content, showTomorrow ? "明日没有课程安排" : "今日没有更多课程");
         view.setViewVisibility(R.id.widget_time, View.GONE);
-        view.setViewVisibility(R.id.widget_location, View.GONE);
+        if (!showTomorrow) {
+          view.setTextViewText(
+              R.id.widget_location, Schedule.time(dailyCutoff) + " 晚课结束后展示明日课程");
+          view.setViewVisibility(R.id.widget_location, View.VISIBLE);
+        } else {
+          view.setViewVisibility(R.id.widget_location, View.GONE);
+        }
       }
 
       view.setOnClickPendingIntent(
@@ -197,5 +199,14 @@ public class AgendaWidget extends AppWidgetProvider {
               PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
       manager.updateAppWidget(id, view);
     }
+  }
+
+  private static String formatSub(Item item, String fallback) {
+    String loc = item.location == null ? "" : item.location.trim();
+    String teacher = item.teacher == null ? "" : item.teacher.trim();
+    if (!loc.isEmpty() && !teacher.isEmpty()) return loc + " · " + teacher;
+    if (!loc.isEmpty()) return loc;
+    if (!teacher.isEmpty()) return teacher;
+    return fallback;
   }
 }

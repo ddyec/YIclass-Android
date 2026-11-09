@@ -32,6 +32,14 @@ public final class Reminders {
     Instant now = Instant.now();
     LocalDate today = now.atZone(s.zone()).toLocalDate();
     Instant next = today.plusDays(1).atStartOfDay(s.zone()).toInstant();
+    int[] ends = s.ends();
+    int dailyCutoff = ends.length > 0 ? ends[ends.length - 1] : 1240;
+    Instant cutoffToday =
+        today
+            .atTime(LocalTime.MIDNIGHT.plusMinutes(Math.min(1439, dailyCutoff)))
+            .atZone(s.zone())
+            .toInstant();
+    if (cutoffToday.isAfter(now) && cutoffToday.isBefore(next)) next = cutoffToday;
     for (int d = 0; d <= 2; d++) {
       LocalDate date = today.plusDays(d);
       for (Item i : Schedule.on(items, date, s.term())) {

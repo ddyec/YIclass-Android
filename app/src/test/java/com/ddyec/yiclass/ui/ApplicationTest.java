@@ -244,25 +244,35 @@ public class ApplicationTest {
         widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
     assertEquals(
         View.GONE, widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
-    captureView(widgetView, 220, 220, "widget-light");
+    captureView(widgetView, 220, 180, "widget-small-active");
+    copyScreenshotToDrawable("widget-small-active", "widget_preview_small");
 
-    // 2. Before class (08:09 Monday): Show all upcoming courses of today
+    // 2. Before class (08:09 Tuesday): Show all 3 upcoming courses of Tuesday filling space
     com.ddyec.yiclass.widget.AgendaWidget.updateAt(
         context,
         android.appwidget.AppWidgetManager.getInstance(context),
         new int[] {id},
-        ZonedDateTime.of(2026, 11, 9, 8, 9, 0, 0, settings.zone()));
+        ZonedDateTime.of(2026, 11, 10, 8, 9, 0, 0, settings.zone()));
     widgetView = widgets.getViewFor(id);
     meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
-    assertEquals("今日待上 · 2节", meta.getText().toString());
+    assertEquals("今日待上 · 3节", meta.getText().toString());
     assertEquals(
         View.GONE,
         widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
     assertEquals(
         View.VISIBLE,
         widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
+    android.widget.TextView row1Loc =
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_row_1_loc);
+    assertTrue(row1Loc.getText().toString().contains("化工学院楼(盐湖大楼)普通化学实验室"));
+    captureView(widgetView, 360, 220, "widget-light");
+    captureView(widgetView, 360, 200, "widget-medium");
+    captureView(widgetView, 360, 300, "widget-large");
+    copyScreenshotToDrawable("widget-medium", "widget_preview_medium");
+    copyScreenshotToDrawable("widget-large", "widget_preview_large");
 
-    // 3. After today's courses end (18:00 Monday): Show tomorrow's courses
+    // 3. After today's courses end but BEFORE evening last period ends (18:00 Monday, cutoff 20:40):
+    // Must show "今日没有更多课程" and NEVER switch to tomorrow early!
     com.ddyec.yiclass.widget.AgendaWidget.updateAt(
         context,
         android.appwidget.AppWidgetManager.getInstance(context),
@@ -270,7 +280,35 @@ public class ApplicationTest {
         ZonedDateTime.of(2026, 11, 9, 18, 0, 0, 0, settings.zone()));
     widgetView = widgets.getViewFor(id);
     meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
+    content = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_content);
+    assertEquals("今日课程", meta.getText().toString());
+    assertEquals("今日没有更多课程", content.getText().toString());
+    assertEquals(
+        View.VISIBLE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
+    assertEquals(
+        View.GONE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
+
+    // 4. AFTER evening last period ends (20:45 Monday, cutoff 20:40):
+    // Now switch to tomorrow's courses!
+    com.ddyec.yiclass.widget.AgendaWidget.updateAt(
+        context,
+        android.appwidget.AppWidgetManager.getInstance(context),
+        new int[] {id},
+        ZonedDateTime.of(2026, 11, 9, 20, 45, 0, 0, settings.zone()));
+    widgetView = widgets.getViewFor(id);
+    meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
     assertEquals("明日课程 · 3节", meta.getText().toString());
+  }
+
+  private void copyScreenshotToDrawable(String screenshotName, String drawableName) throws Exception {
+    File src = new File("build/screenshots/" + screenshotName + ".png");
+    File dst = new File("src/main/res/drawable/" + drawableName + ".png");
+    if (src.exists()) {
+      java.nio.file.Files.copy(
+          src.toPath(), dst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    }
   }
 
   @Test

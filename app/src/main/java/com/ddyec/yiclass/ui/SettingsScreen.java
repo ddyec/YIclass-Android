@@ -71,7 +71,7 @@ final class SettingsScreen {
     brandRow.addView(iconWrap, logoLp);
 
     LinearLayout brandText = Ui.column(a);
-    TextView appName = Ui.title(a, "YI课表", Ui.onPrimaryContainer(a));
+    TextView appName = Ui.title(a, "YIClass", Ui.onPrimaryContainer(a));
     appName.setTextSize(19);
     brandText.addView(appName);
     long courseCount =
@@ -228,8 +228,8 @@ final class SettingsScreen {
             a,
             R.drawable.ic_book,
             "DeepSeek 模型与 API Key",
-            "支持 deepseek-chat (V3) 与 deepseek-reasoner (R1)",
-            Ui.trailingValue(a, a.settings.get("model", "deepseek-chat")),
+            "官方最新 DeepSeek-V4.1 Flash (deepseek-flash) 与 DeepSeek-V4 Pro (deepseek-v4-pro)",
+            Ui.trailingValue(a, a.settings.model()),
             0,
             1,
             this::api));
@@ -266,7 +266,7 @@ final class SettingsScreen {
             chevron(),
             0,
             1,
-            () -> a.backupWriter.launch("YI课表-" + LocalDate.now() + ".json")));
+            () -> a.backupWriter.launch("YIClass-" + LocalDate.now() + ".json")));
     data.add(
         Ui.listItem(
             a,
@@ -314,7 +314,7 @@ final class SettingsScreen {
               if (manager.isRequestPinAppWidgetSupported()) {
                 manager.requestPinAppWidget(new ComponentName(a, classes[which]), null, null);
               } else {
-                a.toast("请长按手机桌面，在「小组件」中选择 YI课表 对应尺寸");
+                a.toast("请长按手机桌面，在「小组件」中选择 YIClass 对应尺寸");
               }
             })
         .show();
@@ -640,40 +640,46 @@ final class SettingsScreen {
     TextInputEditText model =
         Ui.field(
             box,
-            "模型名称（deepseek-chat 或 deepseek-reasoner）",
-            a.settings.get("model", "deepseek-chat"),
+            "模型名称（deepseek-flash 或 deepseek-v4-pro）",
+            a.settings.model(),
             false);
 
     LinearLayout presetRow = Ui.row(a);
-    MaterialButton v3Btn =
+    MaterialButton flashBtn =
         Ui.tonalButton(
             a,
-            "DeepSeek-V3 (chat)",
+            "V4.1 Flash (deepseek-flash)",
             () -> {
               endpoint.setText("https://api.deepseek.com");
-              model.setText("deepseek-chat");
+              model.setText("deepseek-flash");
             });
-    v3Btn.setMinHeight(0);
-    v3Btn.setMinimumHeight(0);
-    v3Btn.setPadding(Ui.dp(a, 12), Ui.dp(a, 6), Ui.dp(a, 12), Ui.dp(a, 6));
-    MaterialButton r1Btn =
+    flashBtn.setMinHeight(0);
+    flashBtn.setMinimumHeight(0);
+    flashBtn.setPadding(Ui.dp(a, 10), Ui.dp(a, 6), Ui.dp(a, 10), Ui.dp(a, 6));
+    MaterialButton proBtn =
         Ui.tonalButton(
             a,
-            "DeepSeek-R1 (reasoner)",
+            "V4 Pro (deepseek-v4-pro)",
             () -> {
               endpoint.setText("https://api.deepseek.com");
-              model.setText("deepseek-reasoner");
+              model.setText("deepseek-v4-pro");
             });
-    r1Btn.setMinHeight(0);
-    r1Btn.setMinimumHeight(0);
-    r1Btn.setPadding(Ui.dp(a, 12), Ui.dp(a, 6), Ui.dp(a, 12), Ui.dp(a, 6));
+    proBtn.setMinHeight(0);
+    proBtn.setMinimumHeight(0);
+    proBtn.setPadding(Ui.dp(a, 10), Ui.dp(a, 6), Ui.dp(a, 10), Ui.dp(a, 6));
     LinearLayout.LayoutParams p1 = new LinearLayout.LayoutParams(0, -2, 1);
     p1.rightMargin = Ui.dp(a, 6);
     LinearLayout.LayoutParams p2 = new LinearLayout.LayoutParams(0, -2, 1);
     p2.leftMargin = Ui.dp(a, 6);
-    presetRow.addView(v3Btn, p1);
-    presetRow.addView(r1Btn, p2);
-    box.addView(presetRow, Ui.wrap(a, 0, 10));
+    presetRow.addView(flashBtn, p1);
+    presetRow.addView(proBtn, p2);
+    box.addView(presetRow, Ui.wrap(a, 0, 8));
+
+    com.google.android.material.checkbox.MaterialCheckBox thinkingBox =
+        new com.google.android.material.checkbox.MaterialCheckBox(a);
+    thinkingBox.setText("开启深度思考模式（thinking: enabled，支持 V4.1 Flash 与 V4 Pro）");
+    thinkingBox.setChecked(a.settings.thinking());
+    box.addView(thinkingBox);
 
     TextInputEditText key = Ui.field(box, "DeepSeek API Key（sk-...，留空保留已存密钥）", "", false);
     key.setInputType(129);
@@ -685,7 +691,7 @@ final class SettingsScreen {
     box.addView(
         Ui.note(
             a,
-            "已严格适配 DeepSeek 官方接口规范：自动兼容 https://api.deepseek.com 与 /v1 路径，支持 JSON 输出模式。"));
+            "已严格遵循 DeepSeek V4.1 / V4 官方接口规范：默认使用 DeepSeek-V4.1-Flash-1017 (deepseek-flash)，支持 DeepSeek-V4-Pro-0813 (deepseek-v4-pro)、thinking 思考控制与 JSON 输出模式。"));
     showForm(
         "配置 DeepSeek AI 助手",
         box,
@@ -705,6 +711,7 @@ final class SettingsScreen {
           else if (!Ui.value(key).isEmpty()) new SecretStore(a).save(Ui.value(key));
           a.settings.put("endpoint", rawUrl);
           a.settings.put("model", Ui.value(model));
+          a.settings.put("thinking", thinkingBox.isChecked() ? "1" : "0");
           a.render();
           a.toast("AI 服务配置已保存");
         });

@@ -68,5 +68,5 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <string name="app_name">YI课表</string>
+    <string name="app_name">YIClass</string>
 </resources>

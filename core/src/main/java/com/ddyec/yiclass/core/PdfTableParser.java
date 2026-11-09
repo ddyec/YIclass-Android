@@ -140,7 +140,7 @@ public final class PdfTableParser {
   public static String cleanSymbols(String text) {
     if (text == null) return "";
     return text.replaceAll(
-        "[\\uFFFD\\uFEFF\\uE000-\\uF8FF\\u25A0-\\u25FF\\u2600-\\u26FF\\u2700-\\u27BF\\u2B00-\\u2BFF◊◆◇◈❖♦♢★☆■□●○▲△▼▽]",
+        "[\\u0000-\\u001F\\u007F-\\u009F\\uFFFD\\uFEFF\\uE000-\\uF8FF\\u25A0-\\u25FF\\u2600-\\u26FF\\u2700-\\u27BF\\u2B00-\\u2BFF◊◆◇◈❖♦♢★☆■□●○▲△▼▽]",
         "");
   }
 

@@ -36,6 +36,21 @@ public final class Settings {
     return "1".equals(get("dynamic_color", "0"));
   }
 
+  public String model() {
+    String m = get("model", "deepseek-flash").trim();
+    if (m.isEmpty() || "deepseek-chat".equals(m) || "deepseek-v4-flash".equals(m)) {
+      return "deepseek-flash";
+    }
+    if ("deepseek-reasoner".equals(m)) {
+      return "deepseek-v4-pro";
+    }
+    return m;
+  }
+
+  public boolean thinking() {
+    return "1".equals(get("thinking", "0"));
+  }
+
   public int[] starts() {
     return slots("starts", Schedule.STARTS);
   }

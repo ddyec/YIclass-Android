@@ -1,10 +1,11 @@
 <resources>
-    <color name="widget_surface">#FFFFFF</color>
-    <color name="widget_container">#DDE1FF</color>
-    <color name="widget_on_container">#0D39B2</color>
-    <color name="widget_title">#111113</color>
-    <color name="widget_text">#7D7D85</color>
-    <color name="widget_accent">#007AFF</color>
-    <dimen name="widget_radius">28dp</dimen>
-    <dimen name="widget_inner_radius">16dp</dimen>
+    <color name="widget_surface">#FFFFFFFF</color>
+    <color name="widget_bg">#FFFFFFFF</color>
+    <color name="widget_stroke">#120F172A</color>
+    <color name="widget_item_bg">#FFF4F7FB</color>
+    <color name="widget_chip">#FFEAF2FF</color>
+    <color name="widget_accent">#FF0A68FF</color>
+    <color name="widget_title">#FF14181F</color>
+    <color name="widget_text">#FF6E7685</color>
+    <dimen name="widget_radius">24dp</dimen>
 </resources>

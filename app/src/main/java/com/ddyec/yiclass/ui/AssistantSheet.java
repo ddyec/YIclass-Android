@@ -48,7 +48,8 @@ final class AssistantSheet {
         Ui.text(
             a,
             "模型："
-                + a.settings.get("model", "deepseek-chat")
+                + a.settings.model()
+                + (a.settings.thinking() ? " (思考)" : "")
                 + " · 支持直接修改与写入课表 JSON",
             12,
             Ui.muted(a));
@@ -285,7 +286,7 @@ final class AssistantSheet {
         .setNegativeButton("关闭", null)
         .setNeutralButton(
             "导出文件",
-            (d, w) -> a.backupWriter.launch("YI课表-" + LocalDate.now() + ".json"))
+            (d, w) -> a.backupWriter.launch("YIClass-" + LocalDate.now() + ".json"))
         .setPositiveButton(
             "直接写入生效",
             (d, w) -> {
