@@ -45,6 +45,7 @@ public class ApplicationTest {
     List<Item> list = new ArrayList<>();
     Object[][] rows = {
       {"普通化学II", 1, "4-17周", 510, 610, "致明楼_507", "包新颜", 0},
+      {"新时代实践教育", 1, "4-17周", 960, 1060, "致明楼_2号多媒体教室", "陈海兵", 2},
       {"大学英语(一)", 2, "4-17周", 510, 610, "致明楼_501", "刘丽丽", 1},
       {"普通化学实验", 2, "5-12周", 650, 750, "化工学院楼(盐湖大楼)普通化学实验室", "包新颜", 3},
       {"高等数学", 2, "4-17周", 840, 940, "菌格楼_2号多媒体教室", "赵文才", 4},
@@ -91,9 +92,9 @@ public class ApplicationTest {
   }
 
   @Test
-  public void backupRoundTripPreservesExceptionsAndSemester() {
+  public void backupRoundTripPreservesExceptionsAndDriftsTermMonday() {
     Settings settings = new Settings(context);
-    settings.put("term", "2026-08-31");
+    settings.put("term", "2026-09-03");
     Item c = course();
     c.excludedDates.add("2026-11-04");
     String json = Backup.export(new Store.Snapshot(0, List.of(c)), settings);
@@ -138,6 +139,9 @@ public class ApplicationTest {
     a.render();
     capture(a, "settings-light");
     new Editors(a).edit(null, null, false);
+    new SettingsScreen(a).term();
+    new SettingsScreen(a).slots();
+    new SettingsScreen(a).api();
     org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     assertNotNull(a.root);
     assertEquals(items.size(), a.snapshot.items().size());
@@ -145,13 +149,19 @@ public class ApplicationTest {
   }
 
   @Test
-  public void androidPdfBoxReadsActualRotatedDocument() throws Exception {
+  public void androidPdfBoxReadsActualRotatedDocumentWithoutDiamonds() throws Exception {
     String source = System.getProperty("fixture.pdf", "");
     Assume.assumeFalse(source.isEmpty());
     var imported =
         new com.ddyec.yiclass.importer.PdfImporter()
             .read(context, android.net.Uri.fromFile(new File(source)));
     assertEquals(21, imported.items().size());
+    for (Item item : imported.items()) {
+      assertFalse(item.title.contains("\uFFFD"));
+      assertFalse(item.title.contains("◆"));
+      assertFalse(item.title.contains("◇"));
+      assertEquals("", item.notes);
+    }
     Item basketball =
         imported.items().stream().filter(i -> i.title.contains("篮球")).findFirst().orElseThrow();
     assertEquals(3, basketball.day);
@@ -175,7 +185,7 @@ public class ApplicationTest {
   }
 
   @Test
-  public void remindersDeliverOnlyOnceAndWidgetUsesSameSchedule() throws Exception {
+  public void remindersDeliverOnlyOnceAndWidgetHandlesActiveUpcomingAndTomorrow() throws Exception {
     Settings settings = new Settings(context);
     settings.put("term", LocalDate.now(settings.zone()).with(DayOfWeek.MONDAY).toString());
     LocalDateTime start =
@@ -217,23 +227,50 @@ public class ApplicationTest {
       settings.put("term", "2026-08-31");
       db.replace(db.snapshot().revision(), sampleSchedule());
     }
+    // 1. In class (09:00 Monday): Exclusive active course mode
+    com.ddyec.yiclass.widget.AgendaWidget.updateAt(
+        context,
+        android.appwidget.AppWidgetManager.getInstance(context),
+        new int[] {id},
+        ZonedDateTime.of(2026, 11, 9, 9, 0, 0, 0, settings.zone()));
+    View widgetView = widgets.getViewFor(id);
+    android.widget.TextView meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
+    android.widget.TextView content =
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_content);
+    assertEquals("正在上课", meta.getText().toString());
+    assertEquals("普通化学II", content.getText().toString());
+    assertEquals(
+        View.VISIBLE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
+    assertEquals(
+        View.GONE, widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
+    captureView(widgetView, 220, 220, "widget-light");
+
+    // 2. Before class (08:09 Monday): Show all upcoming courses of today
     com.ddyec.yiclass.widget.AgendaWidget.updateAt(
         context,
         android.appwidget.AppWidgetManager.getInstance(context),
         new int[] {id},
         ZonedDateTime.of(2026, 11, 9, 8, 9, 0, 0, settings.zone()));
-    View widgetView = widgets.getViewFor(id);
-    android.widget.TextView meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
-    android.widget.TextView content =
-        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_content);
-    android.widget.TextView time = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_time);
-    android.widget.TextView location =
-        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_location);
-    assertEquals("下一节", meta.getText().toString());
-    assertEquals("普通化学II", content.getText().toString());
-    assertEquals("08:30–10:10", time.getText().toString());
-    assertEquals("致明楼_507", location.getText().toString());
-    captureView(widgetView, 200, 200, "widget-light");
+    widgetView = widgets.getViewFor(id);
+    meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
+    assertEquals("今日待上 · 2节", meta.getText().toString());
+    assertEquals(
+        View.GONE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
+    assertEquals(
+        View.VISIBLE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
+
+    // 3. After today's courses end (18:00 Monday): Show tomorrow's courses
+    com.ddyec.yiclass.widget.AgendaWidget.updateAt(
+        context,
+        android.appwidget.AppWidgetManager.getInstance(context),
+        new int[] {id},
+        ZonedDateTime.of(2026, 11, 9, 18, 0, 0, 0, settings.zone()));
+    widgetView = widgets.getViewFor(id);
+    meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
+    assertEquals("明日课程 · 3节", meta.getText().toString());
   }
 
   @Test

@@ -117,16 +117,14 @@ public final class PdfTableParser {
         continue;
       }
       Item c = new Item();
-      c.title = title.toString();
+      c.title = cleanSymbols(title.toString()).trim();
       c.day = day;
       c.start = Schedule.STARTS[a - 1];
       c.end = Schedule.ENDS[b - 1];
       c.weeks = fields.get(i)[2];
-      c.location = field(metadata, "场地");
-      c.teacher = field(metadata, "教师");
-      Matcher total = Pattern.compile("课程总学时:\\d+(?:\\.\\d+)?").matcher(metadata);
-      String original = total.find() ? metadata.substring(0, total.end()) : metadata;
-      c.notes = "由本地 PDF 导入\n第" + a + "–" + b + "节 · " + c.weeks + "\n" + original;
+      c.location = cleanSymbols(field(metadata, "场地")).trim();
+      c.teacher = cleanSymbols(field(metadata, "教师")).trim();
+      c.notes = "";
       c.color = colorByTitle.computeIfAbsent(c.title, k -> colorByTitle.size() % 6);
       c.validate();
       if (out.stream().noneMatch(x -> x.fingerprint().equals(c.fingerprint()))) out.add(c);
@@ -139,11 +137,19 @@ public final class PdfTableParser {
     return m.find() ? m.group(1) : "";
   }
 
+  public static String cleanSymbols(String text) {
+    if (text == null) return "";
+    return text.replaceAll(
+        "[\\uFFFD\\uFEFF\\uE000-\\uF8FF\\u25A0-\\u25FF\\u2600-\\u26FF\\u2700-\\u27BF\\u2B00-\\u2BFF◊◆◇◈❖♦♢★☆■□●○▲△▼▽]",
+        "");
+  }
+
   public static String normalize(String text) {
-    return Normalizer.normalize(text, Normalizer.Form.NFKC)
-        .replace('（', '(')
-        .replace('）', ')')
-        .replace('：', ':');
+    return cleanSymbols(
+        Normalizer.normalize(text, Normalizer.Form.NFKC)
+            .replace('（', '(')
+            .replace('）', ')')
+            .replace('：', ':'));
   }
 
   private static List<List<Glyph>> lines(List<Glyph> source) {

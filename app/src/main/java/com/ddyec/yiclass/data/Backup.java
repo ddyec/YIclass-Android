@@ -25,8 +25,9 @@ public final class Backup {
     JsonObject root = JsonParser.parseString(input).getAsJsonObject();
     if (!"yiclass-native".equals(root.get("format").getAsString())
         || root.get("version").getAsInt() != 1) throw new IllegalArgumentException("不支持的备份格式");
-    LocalDate term = LocalDate.parse(root.get("term").getAsString());
-    if (term.getDayOfWeek() != DayOfWeek.MONDAY) throw new IllegalArgumentException("首周日期必须是周一");
+    LocalDate term =
+        com.ddyec.yiclass.core.Schedule.parseTermMonday(
+            root.get("term").getAsString(), LocalDate.now().getYear());
     String zone = ZoneId.of(root.get("zone").getAsString()).getId();
     Item[] array = Store.JSON.fromJson(root.get("items"), Item[].class);
     if (array == null || array.length > 5000) throw new IllegalArgumentException("备份条目过多");

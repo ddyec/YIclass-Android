@@ -14,6 +14,36 @@ public final class Schedule {
     return (int) Math.floorDiv(ChronoUnit.DAYS.between(start, date), 7) + 1;
   }
 
+  public static LocalDate parseTermMonday(String raw, int defaultYear) {
+    if (raw == null || raw.trim().isEmpty()) {
+      throw new IllegalArgumentException("请选择或输入首周日期（如 2026-09-03 或 09-03）");
+    }
+    String s =
+        raw.trim()
+            .replace('年', '-')
+            .replace('月', '-')
+            .replace("日", "")
+            .replace('/', '-')
+            .replace('.', '-')
+            .replace('—', '-')
+            .replace('–', '-');
+    String[] parts = s.split("-");
+    LocalDate date;
+    if (parts.length == 3) {
+      int y = Integer.parseInt(parts[0].trim());
+      int m = Integer.parseInt(parts[1].trim());
+      int d = Integer.parseInt(parts[2].trim());
+      date = LocalDate.of(y, m, d);
+    } else if (parts.length == 2) {
+      int m = Integer.parseInt(parts[0].trim());
+      int d = Integer.parseInt(parts[1].trim());
+      date = LocalDate.of(defaultYear, m, d);
+    } else {
+      date = LocalDate.parse(s);
+    }
+    return date.with(DayOfWeek.MONDAY);
+  }
+
   public static List<Item> on(Collection<Item> items, LocalDate d, LocalDate start) {
     List<Item> found = new ArrayList<>();
     for (Item i : items) if (i.on(d, start)) found.add(i);

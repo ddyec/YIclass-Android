@@ -17,9 +17,17 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".widget.AgendaWidget" android:exported="false" android:label="YI课表 · 今日与接下来">
+        <receiver android:name=".widget.AgendaWidget" android:exported="true" android:label="YI课表 · 小号 (2×2)">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/agenda_widget"/>
+        </receiver>
+        <receiver android:name=".widget.AgendaMediumWidget" android:exported="true" android:label="YI课表 · 中号 (4×2)">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/agenda_widget_medium"/>
+        </receiver>
+        <receiver android:name=".widget.AgendaLargeWidget" android:exported="true" android:label="YI课表 · 大号 (4×3)">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/agenda_widget_large"/>
         </receiver>
     </application>
 </manifest>

@@ -8,7 +8,6 @@ import android.widget.*;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.*;
 
-/** In-app page preview; respects the PDF page rotation through Android's renderer. */
 final class PdfPreview {
   private final MainActivity a;
   private PdfRenderer renderer;

@@ -7,6 +7,8 @@ import android.content.*;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
@@ -15,7 +17,10 @@ import androidx.core.app.NotificationManagerCompat;
 import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
+import com.ddyec.yiclass.widget.AgendaLargeWidget;
+import com.ddyec.yiclass.widget.AgendaMediumWidget;
 import com.ddyec.yiclass.widget.AgendaWidget;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.DynamicColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -107,7 +112,7 @@ final class SettingsScreen {
             a,
             R.drawable.ic_school,
             "学期首周",
-            "第 1 周星期一，用于推算循环周次",
+            "日历选择或输入日期，非周一自动对齐至当周周一",
             Ui.trailingValue(a, a.settings.term().toString()),
             0,
             1,
@@ -117,7 +122,7 @@ final class SettingsScreen {
             a,
             R.drawable.ic_schedule,
             "作息时间",
-            "自定义第 1–10 节起止时间",
+            "滚轮拖动调整第 1–10 节起止时间",
             Ui.trailingValue(a, "10 节"),
             0,
             1,
@@ -199,16 +204,11 @@ final class SettingsScreen {
             a,
             R.drawable.ic_widgets,
             "桌面课表小组件",
-            "在桌面显示下一节课程、时间与教室",
+            "提供 2×2 / 4×2 / 4×3 三种尺寸并支持自由缩放",
             Ui.icon(a, R.drawable.ic_add, 22, Ui.primary(a)),
             0,
             1,
-            () -> {
-              AppWidgetManager manager = AppWidgetManager.getInstance(a);
-              if (manager.isRequestPinAppWidgetSupported())
-                manager.requestPinAppWidget(new ComponentName(a, AgendaWidget.class), null, null);
-              else a.toast("请长按桌面，在小组件中选择 YI课表");
-            }));
+            this::pinWidget));
     perm.add(
         Ui.listItem(
             a,
@@ -221,14 +221,14 @@ final class SettingsScreen {
             () -> showPermissionGuide(notifications, exact)));
     addGroup(box, perm);
 
-    section(box, "AI 助手");
+    section(box, "AI 助手（DeepSeek 官方接口）");
     List<View> ai = new ArrayList<>();
     ai.add(
         Ui.listItem(
             a,
             R.drawable.ic_book,
-            "接口、模型与 API Key",
-            "默认 DeepSeek 兼容接口",
+            "DeepSeek 模型与 API Key",
+            "支持 deepseek-chat (V3) 与 deepseek-reasoner (R1)",
             Ui.trailingValue(a, a.settings.get("model", "deepseek-chat")),
             0,
             1,
@@ -238,7 +238,7 @@ final class SettingsScreen {
             a,
             R.drawable.ic_key,
             "数据与密钥保护",
-            "仅在发送请求时提交课程内容，原 PDF 不上传；API Key 由 Android Keystore 加密存储",
+            "支持直接读写本地 JSON 课表并展示操作摘要；API Key 由 Android Keystore 加密存储",
             null,
             0,
             1,
@@ -293,6 +293,31 @@ final class SettingsScreen {
 
     outer.addView(Ui.scroll(a, box), new LinearLayout.LayoutParams(-1, 0, 1));
     return outer;
+  }
+
+  private void pinWidget() {
+    String[] sizes = {
+      "小号 (2×2) · 紧凑卡片（支持自由缩放）",
+      "中号 (4×2) · 今日待上列表（支持自由缩放）",
+      "大号 (4×3) · 完整今日课表（支持自由缩放）"
+    };
+    Class<?>[] classes = {
+      AgendaWidget.class, AgendaMediumWidget.class, AgendaLargeWidget.class
+    };
+    new MaterialAlertDialogBuilder(a)
+        .setIcon(R.drawable.ic_widgets)
+        .setTitle("添加桌面小组件")
+        .setItems(
+            sizes,
+            (d, which) -> {
+              AppWidgetManager manager = AppWidgetManager.getInstance(a);
+              if (manager.isRequestPinAppWidgetSupported()) {
+                manager.requestPinAppWidget(new ComponentName(a, classes[which]), null, null);
+              } else {
+                a.toast("请长按手机桌面，在「小组件」中选择 YI课表 对应尺寸");
+              }
+            })
+        .show();
   }
 
   private View chevron() {
@@ -376,18 +401,64 @@ final class SettingsScreen {
 
   void term() {
     LinearLayout box = Ui.column(a);
-    Ui.inset(box, 20);
+    Ui.inset(box, 16);
+    LocalDate currentTerm = a.settings.term();
     TextInputEditText field =
-        Ui.field(box, "第1周周一 YYYY-MM-DD", a.settings.term().toString(), false);
-    box.addView(Ui.note(a, "修改后所有循环课程、提醒和桌面小组件将按新首周计算。"));
+        Ui.field(box, "输入日期（如 09-03 或 2026-09-03）", currentTerm.toString(), false);
+    TextView driftHint =
+        Ui.text(
+            a,
+            "当周周一：" + currentTerm + "（选择任意日期会自动漂移至当周周一）",
+            12.5f,
+            Ui.primary(a));
+    Ui.emphasize(driftHint, 600);
+    driftHint.setPadding(Ui.dp(a, 4), Ui.dp(a, 2), Ui.dp(a, 4), Ui.dp(a, 8));
+    box.addView(driftHint);
+
+    CalendarView calendarView = new CalendarView(a);
+    calendarView.setFirstDayOfWeek(Calendar.MONDAY);
+    calendarView.setDate(
+        currentTerm.atStartOfDay(a.settings.zone()).toInstant().toEpochMilli(), false, true);
+    calendarView.setOnDateChangeListener(
+        (view, year, month, dayOfMonth) -> {
+          LocalDate picked = LocalDate.of(year, month + 1, dayOfMonth);
+          LocalDate monday = picked.with(DayOfWeek.MONDAY);
+          field.setText(monday.toString());
+          driftHint.setText(
+              picked.equals(monday)
+                  ? "已选周一：" + monday
+                  : "已选 " + picked + " → 自动漂移至当周周一：" + monday);
+        });
+    box.addView(calendarView, new LinearLayout.LayoutParams(-1, Ui.dp(a, 300)));
+
+    field.addTextChangedListener(
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+          @Override
+          public void afterTextChanged(Editable s) {
+            try {
+              LocalDate monday =
+                  Schedule.parseTermMonday(s.toString(), currentTerm.getYear());
+              driftHint.setText("将自动对齐至当周周一：" + monday);
+            } catch (Exception ignored) {
+            }
+          }
+        });
+
     showForm(
-        "学期首周",
+        "设置学期首周",
         box,
         () -> {
-          LocalDate d = LocalDate.parse(Ui.value(field));
-          if (d.getDayOfWeek() != DayOfWeek.MONDAY) throw new IllegalArgumentException("请填写星期一的日期");
-          a.settings.put("term", d.toString());
+          LocalDate monday =
+              Schedule.parseTermMonday(Ui.value(field), currentTerm.getYear());
+          a.settings.put("term", monday.toString());
           a.refresh();
+          a.toast("学期首周已设为周一：" + monday);
         });
   }
 
@@ -408,67 +479,234 @@ final class SettingsScreen {
 
   void slots() {
     LinearLayout box = Ui.column(a);
-    Ui.inset(box, 18);
-    box.addView(Ui.note(a, "作息用于周视图刻度与导入 PDF 时的节次换算。"));
-    List<TextInputEditText> fields = new ArrayList<>();
-    int[] starts = a.settings.starts(), ends = a.settings.ends();
-    for (int i = 0; i < 10; i++)
-      fields.add(
-          Ui.field(
-              box,
-              "第" + (i + 1) + "节 HH:mm-HH:mm",
-              Schedule.time(starts[i]) + "-" + Schedule.time(ends[i]),
-              false));
+    Ui.inset(box, 16);
+    int[] starts = a.settings.starts().clone();
+    int[] ends = a.settings.ends().clone();
+    MaterialButton[] startBtns = new MaterialButton[10];
+    MaterialButton[] endBtns = new MaterialButton[10];
+
+    LinearLayout topRow = Ui.row(a);
+    TextView tip = Ui.note(a, "点击任意时间，滑动滚轮即可调节（默认每节 45 分钟）。");
+    topRow.addView(tip, new LinearLayout.LayoutParams(0, -2, 1));
+    MaterialButton resetBtn =
+        Ui.tonalButton(
+            a,
+            "恢复默认",
+            () -> {
+              for (int i = 0; i < 10; i++) {
+                starts[i] = Schedule.STARTS[i];
+                ends[i] = Schedule.ENDS[i];
+                startBtns[i].setText(Schedule.time(starts[i]));
+                endBtns[i].setText(Schedule.time(ends[i]));
+              }
+            });
+    resetBtn.setMinHeight(0);
+    resetBtn.setMinimumHeight(0);
+    resetBtn.setPadding(Ui.dp(a, 12), Ui.dp(a, 6), Ui.dp(a, 12), Ui.dp(a, 6));
+    topRow.addView(resetBtn);
+    box.addView(topRow, Ui.wrap(a, 0, 10));
+
+    for (int i = 0; i < 10; i++) {
+      final int idx = i;
+      MaterialCardView rowCard = Ui.surfaceCard(a);
+      rowCard.setShapeAppearanceModel(Ui.segment(a, i, 10));
+      LinearLayout row = Ui.row(a);
+      row.setPadding(Ui.dp(a, 16), Ui.dp(a, 10), Ui.dp(a, 14), Ui.dp(a, 10));
+
+      TextView label = Ui.title(a, "第 " + (i + 1) + " 节", Ui.ink(a));
+      label.setTextSize(15);
+      row.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+
+      MaterialButton sBtn =
+          Ui.tonalButton(
+              a,
+              Schedule.time(starts[i]),
+              () ->
+                  pickWheelTime(
+                      "第 " + (idx + 1) + " 节 · 开始时间",
+                      starts[idx],
+                      newMin -> {
+                        int duration = Math.max(30, ends[idx] - starts[idx]);
+                        starts[idx] = newMin;
+                        startBtns[idx].setText(Schedule.time(starts[idx]));
+                        if (ends[idx] <= starts[idx] || duration == 45) {
+                          ends[idx] = Math.min(1439, starts[idx] + duration);
+                          endBtns[idx].setText(Schedule.time(ends[idx]));
+                        }
+                      }));
+      sBtn.setMinHeight(0);
+      sBtn.setMinimumHeight(0);
+      sBtn.setPadding(Ui.dp(a, 14), Ui.dp(a, 6), Ui.dp(a, 14), Ui.dp(a, 6));
+      startBtns[i] = sBtn;
+      row.addView(sBtn);
+
+      TextView dash = Ui.text(a, " — ", 14, Ui.muted(a));
+      dash.setPadding(Ui.dp(a, 6), 0, Ui.dp(a, 6), 0);
+      row.addView(dash);
+
+      MaterialButton eBtn =
+          Ui.tonalButton(
+              a,
+              Schedule.time(ends[i]),
+              () ->
+                  pickWheelTime(
+                      "第 " + (idx + 1) + " 节 · 结束时间",
+                      ends[idx],
+                      newMin -> {
+                        ends[idx] = newMin;
+                        endBtns[idx].setText(Schedule.time(ends[idx]));
+                      }));
+      eBtn.setMinHeight(0);
+      eBtn.setMinimumHeight(0);
+      eBtn.setPadding(Ui.dp(a, 14), Ui.dp(a, 6), Ui.dp(a, 14), Ui.dp(a, 6));
+      endBtns[i] = eBtn;
+      row.addView(eBtn);
+
+      rowCard.addView(row);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+      lp.bottomMargin = Ui.dp(a, i == 9 ? 0 : 2);
+      box.addView(rowCard, lp);
+    }
+
     showForm(
-        "学校作息",
+        "学校作息时间",
         box,
         () -> {
           List<String> ss = new ArrayList<>(), es = new ArrayList<>();
-          for (var field : fields) {
-            String[] p = Ui.value(field).split("-");
-            if (p.length != 2) throw new IllegalArgumentException("作息格式为 HH:mm-HH:mm");
-            ss.add(String.valueOf(Schedule.minute(p[0])));
-            es.add(String.valueOf(Schedule.minute(p[1])));
+          for (int i = 0; i < 10; i++) {
+            ss.add(String.valueOf(starts[i]));
+            es.add(String.valueOf(ends[i]));
           }
           String start = String.join(",", ss), end = String.join(",", es);
           Backup.validateSlots(start, end);
           a.settings.put("starts", start);
           a.settings.put("ends", end);
           a.refresh();
+          a.toast("作息时间已保存");
         });
+  }
+
+  private void pickWheelTime(
+      String title, int initialMinute, java.util.function.IntConsumer onPicked) {
+    LinearLayout box = Ui.column(a);
+    Ui.inset(box, 20);
+    LinearLayout wheels = Ui.row(a);
+    wheels.setGravity(Gravity.CENTER);
+
+    NumberPicker hourPicker = new NumberPicker(a);
+    hourPicker.setMinValue(0);
+    hourPicker.setMaxValue(23);
+    hourPicker.setValue(Math.max(0, Math.min(23, initialMinute / 60)));
+    hourPicker.setFormatter(v -> String.format(Locale.ROOT, "%02d 时", v));
+
+    TextView colon = Ui.title(a, ":", Ui.ink(a));
+    colon.setTextSize(22);
+    colon.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), 0);
+
+    NumberPicker minPicker = new NumberPicker(a);
+    minPicker.setMinValue(0);
+    minPicker.setMaxValue(59);
+    minPicker.setValue(Math.max(0, Math.min(59, initialMinute % 60)));
+    minPicker.setFormatter(v -> String.format(Locale.ROOT, "%02d 分", v));
+
+    wheels.addView(hourPicker, new LinearLayout.LayoutParams(Ui.dp(a, 110), -2));
+    wheels.addView(colon);
+    wheels.addView(minPicker, new LinearLayout.LayoutParams(Ui.dp(a, 110), -2));
+    box.addView(wheels);
+
+    new MaterialAlertDialogBuilder(a)
+        .setTitle(title)
+        .setView(box)
+        .setNegativeButton("取消", null)
+        .setPositiveButton(
+            "确定",
+            (d, w) -> {
+              hourPicker.clearFocus();
+              minPicker.clearFocus();
+              onPicked.accept(hourPicker.getValue() * 60 + minPicker.getValue());
+            })
+        .show();
   }
 
   void api() {
     LinearLayout box = Ui.column(a);
     Ui.inset(box, 20);
     TextInputEditText endpoint =
-        Ui.field(box, "HTTPS 基础地址", a.settings.get("endpoint", "https://api.deepseek.com"), false);
+        Ui.field(
+            box,
+            "API 地址（官方：https://api.deepseek.com）",
+            a.settings.get("endpoint", "https://api.deepseek.com"),
+            false);
     TextInputEditText model =
-        Ui.field(box, "模型 ID", a.settings.get("model", "deepseek-chat"), false);
-    TextInputEditText key = Ui.field(box, "API Key（留空保留已有值）", "", false);
+        Ui.field(
+            box,
+            "模型名称（deepseek-chat 或 deepseek-reasoner）",
+            a.settings.get("model", "deepseek-chat"),
+            false);
+
+    LinearLayout presetRow = Ui.row(a);
+    MaterialButton v3Btn =
+        Ui.tonalButton(
+            a,
+            "DeepSeek-V3 (chat)",
+            () -> {
+              endpoint.setText("https://api.deepseek.com");
+              model.setText("deepseek-chat");
+            });
+    v3Btn.setMinHeight(0);
+    v3Btn.setMinimumHeight(0);
+    v3Btn.setPadding(Ui.dp(a, 12), Ui.dp(a, 6), Ui.dp(a, 12), Ui.dp(a, 6));
+    MaterialButton r1Btn =
+        Ui.tonalButton(
+            a,
+            "DeepSeek-R1 (reasoner)",
+            () -> {
+              endpoint.setText("https://api.deepseek.com");
+              model.setText("deepseek-reasoner");
+            });
+    r1Btn.setMinHeight(0);
+    r1Btn.setMinimumHeight(0);
+    r1Btn.setPadding(Ui.dp(a, 12), Ui.dp(a, 6), Ui.dp(a, 12), Ui.dp(a, 6));
+    LinearLayout.LayoutParams p1 = new LinearLayout.LayoutParams(0, -2, 1);
+    p1.rightMargin = Ui.dp(a, 6);
+    LinearLayout.LayoutParams p2 = new LinearLayout.LayoutParams(0, -2, 1);
+    p2.leftMargin = Ui.dp(a, 6);
+    presetRow.addView(v3Btn, p1);
+    presetRow.addView(r1Btn, p2);
+    box.addView(presetRow, Ui.wrap(a, 0, 10));
+
+    TextInputEditText key = Ui.field(box, "DeepSeek API Key（sk-...，留空保留已存密钥）", "", false);
     key.setInputType(129);
     key.setSaveEnabled(false);
     com.google.android.material.checkbox.MaterialCheckBox clear =
         new com.google.android.material.checkbox.MaterialCheckBox(a);
-    clear.setText("删除本机已保存的 Key");
+    clear.setText("清除本机已保存的 API Key");
     box.addView(clear);
-    box.addView(Ui.note(a, "填写基础地址，无需附加 /chat/completions。"));
+    box.addView(
+        Ui.note(
+            a,
+            "已严格适配 DeepSeek 官方接口规范：自动兼容 https://api.deepseek.com 与 /v1 路径，支持 JSON 输出模式。"));
     showForm(
-        "AI服务配置",
+        "配置 DeepSeek AI 助手",
         box,
         () -> {
-          java.net.URI uri = java.net.URI.create(Ui.value(endpoint));
+          String rawUrl = Ui.value(endpoint).replaceAll("/+$", "");
+          if (rawUrl.endsWith("/chat/completions")) {
+            rawUrl = rawUrl.substring(0, rawUrl.length() - "/chat/completions".length());
+          }
+          java.net.URI uri = java.net.URI.create(rawUrl);
           if (!"https".equals(uri.getScheme())
               || uri.getHost() == null
               || uri.getUserInfo() != null
               || uri.getQuery() != null
-              || uri.getFragment() != null) throw new IllegalArgumentException("请输入有效的HTTPS基础地址");
-          if (Ui.value(model).isEmpty()) throw new IllegalArgumentException("请填写模型ID");
+              || uri.getFragment() != null) throw new IllegalArgumentException("请输入有效的 HTTPS 地址");
+          if (Ui.value(model).isEmpty()) throw new IllegalArgumentException("请填写模型名称");
           if (clear.isChecked()) new SecretStore(a).save("");
           else if (!Ui.value(key).isEmpty()) new SecretStore(a).save(Ui.value(key));
-          a.settings.put("endpoint", Ui.value(endpoint));
+          a.settings.put("endpoint", rawUrl);
           a.settings.put("model", Ui.value(model));
-          a.toast("AI配置已保存");
+          a.render();
+          a.toast("AI 服务配置已保存");
         });
   }
 

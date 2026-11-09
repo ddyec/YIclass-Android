@@ -88,7 +88,31 @@ final class ImportFlow {
                 + (result.items().size() - fresh.size())
                 + " 条重复项。可取消不需要导入的课程。\n\n"
                 + String.join("\n", result.warnings())));
-    TextInputEditText term = Ui.field(box, "第1周的周一（务必核对）", a.settings.term().toString(), false);
+    TextInputEditText term =
+        Ui.field(box, "学期第1周日期（如 09-03，自动对齐当周周一）", a.settings.term().toString(), false);
+    Ui.endAction(
+        term,
+        R.drawable.ic_event,
+        "打开日历选择首周",
+        () -> {
+          LocalDate current;
+          try {
+            current = Schedule.parseTermMonday(Ui.value(term), a.settings.term().getYear());
+          } catch (Exception ignored) {
+            current = a.settings.term();
+          }
+          new android.app.DatePickerDialog(
+                  a,
+                  (view, year, month, dayOfMonth) -> {
+                    LocalDate picked =
+                        LocalDate.of(year, month + 1, dayOfMonth).with(DayOfWeek.MONDAY);
+                    term.setText(picked.toString());
+                  },
+                  current.getYear(),
+                  current.getMonthValue() - 1,
+                  current.getDayOfMonth())
+              .show();
+        });
     box.addView(
         Ui.withIcon(Ui.tonalButton(a, "查看原始 PDF", () -> new PdfPreview(a).show(uri)), R.drawable.ic_pdf),
         Ui.wrap(a, 0, 12));
@@ -113,7 +137,6 @@ final class ImportFlow {
               + item.teacher);
       c.setPadding(Ui.dp(a, 4), Ui.dp(a, 10), Ui.dp(a, 12), Ui.dp(a, 10));
       selections.add(c);
-      // Segmented Expressive list row.
       com.google.android.material.card.MaterialCardView row =
           new com.google.android.material.card.MaterialCardView(a);
       row.setCardElevation(0);
@@ -140,9 +163,10 @@ final class ImportFlow {
                 .setOnClickListener(
                     w -> {
                       try {
-                        LocalDate first = LocalDate.parse(Ui.value(term));
-                        if (first.getDayOfWeek() != DayOfWeek.MONDAY)
-                          throw new IllegalArgumentException("学期首周日期必须是星期一");
+                        LocalDate first =
+                            Schedule.parseTermMonday(
+                                Ui.value(term), a.settings.term().getYear());
+                        term.setText(first.toString());
                         List<Item> next = new ArrayList<>(base.items());
                         int added = 0;
                         for (int i = 0; i < fresh.size(); i++)

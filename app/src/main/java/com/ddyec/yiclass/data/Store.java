@@ -38,6 +38,15 @@ public final class Store extends SQLiteOpenHelper {
       try (Cursor c = db.rawQuery("SELECT payload FROM items ORDER BY rowid", null)) {
         while (c.moveToNext()) {
           Item i = JSON.fromJson(c.getString(0), Item.class);
+          i.title = PdfTableParser.cleanSymbols(i.title).trim();
+          i.location = PdfTableParser.cleanSymbols(i.location).trim();
+          i.teacher = PdfTableParser.cleanSymbols(i.teacher).trim();
+          if (i.notes != null) {
+            i.notes = PdfTableParser.cleanSymbols(i.notes);
+            if (i.notes.startsWith("由本地 PDF 导入") || i.notes.startsWith("由本地PDF导入")) {
+              i.notes = "";
+            }
+          }
           i.validate();
           list.add(i);
         }

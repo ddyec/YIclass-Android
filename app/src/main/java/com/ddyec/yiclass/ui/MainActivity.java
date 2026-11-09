@@ -172,18 +172,28 @@ public class MainActivity extends AppCompatActivity {
     new MaterialAlertDialogBuilder(this)
         .setTitle("课表与数据")
         .setItems(
-            new String[] {"从本地 PDF 导入课表", "修改课表名称", "恢复 JSON 备份", "导出 JSON 备份", "阅读本地 PDF"},
+            new String[] {
+              "从本地 PDF 导入课表",
+              "修改课表名称",
+              "设置学期首周（日历选择）",
+              "调整作息时间",
+              "恢复 JSON 备份",
+              "导出 JSON 备份",
+              "阅读本地 PDF"
+            },
             (d, n) -> {
               switch (n) {
                 case 0 -> pdfPicker.launch(new String[] {"application/pdf"});
                 case 1 -> renameTable();
-                case 2 ->
+                case 2 -> new SettingsScreen(this).term();
+                case 3 -> new SettingsScreen(this).slots();
+                case 4 ->
                     backupPicker.launch(
                         new String[] {
                           "application/json", "text/plain", "application/octet-stream"
                         });
-                case 3 -> backupWriter.launch("YI课表-" + LocalDate.now() + ".json");
-                case 4 -> pdfViewer.launch(new String[] {"application/pdf"});
+                case 5 -> backupWriter.launch("YI课表-" + LocalDate.now() + ".json");
+                case 6 -> pdfViewer.launch(new String[] {"application/pdf"});
               }
             })
         .show();
@@ -894,21 +904,24 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void details(Item item, LocalDate date) {
-    String content =
+    List<String> lines = new ArrayList<>();
+    lines.add(
         (item.date.isEmpty() ? Ui.day(item.day) + " · " + item.weeks : item.date)
-            + "\n"
+            + "  "
             + Schedule.time(item.start)
-            + " — "
-            + Schedule.time(item.end)
-            + "\n"
-            + item.location
-            + "\n"
-            + item.teacher
-            + "\n"
-            + item.notes
-            + (item.excludedDates.isEmpty()
-                ? ""
-                : "\n已跳过日期：" + String.join("、", item.excludedDates));
+            + "–"
+            + Schedule.time(item.end));
+    if (!item.location.isEmpty()) lines.add("地点：" + item.location);
+    if (!item.teacher.isEmpty()) lines.add("教师：" + item.teacher);
+    if (item.reminder >= 0) lines.add("提醒：提前 " + item.reminder + " 分钟");
+    String cleanNotes =
+        item.notes == null || item.notes.startsWith("由本地 PDF 导入") || item.notes.startsWith("由本地PDF导入")
+            ? ""
+            : item.notes.trim();
+    if (!cleanNotes.isEmpty()) lines.add("备注：" + cleanNotes);
+    if (!item.excludedDates.isEmpty())
+      lines.add("已跳过日期：" + String.join("、", item.excludedDates));
+    String content = String.join("\n", lines);
     new MaterialAlertDialogBuilder(this)
         .setIcon("EVENT".equals(item.type) ? R.drawable.ic_event : R.drawable.ic_school)
         .setTitle(item.title)
