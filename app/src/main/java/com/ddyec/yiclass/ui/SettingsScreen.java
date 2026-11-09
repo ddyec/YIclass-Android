@@ -209,6 +209,25 @@ final class SettingsScreen {
             0,
             1,
             this::pinWidget));
+    MaterialSwitch debugTomorrowSwitch = new MaterialSwitch(a);
+    debugTomorrowSwitch.setChecked(a.settings.widgetDebugTomorrow());
+    debugTomorrowSwitch.setContentDescription("强制展示明日课程");
+    debugTomorrowSwitch.setOnCheckedChangeListener(
+        (v, on) -> {
+          a.settings.put("widget_debug_tomorrow", on ? "1" : "0");
+          AgendaWidget.refreshAll(a);
+          a.toast(on ? "调试开启：小组件已强制展示明日课程" : "调试关闭：小组件已恢复按时间正常显示");
+        });
+    perm.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_auto_awesome,
+            "小组件调试：强制展示明日课程",
+            "忽略时间限制直接展示明日多节课程，用于检查容器排版与溢出",
+            debugTomorrowSwitch,
+            0,
+            1,
+            debugTomorrowSwitch::toggle));
     perm.add(
         Ui.listItem(
             a,

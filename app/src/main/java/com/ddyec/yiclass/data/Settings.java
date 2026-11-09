@@ -51,6 +51,10 @@ public final class Settings {
     return "1".equals(get("thinking", "0"));
   }
 
+  public boolean widgetDebugTomorrow() {
+    return "1".equals(get("widget_debug_tomorrow", "0"));
+  }
+
   public int[] starts() {
     return slots("starts", Schedule.STARTS);
   }

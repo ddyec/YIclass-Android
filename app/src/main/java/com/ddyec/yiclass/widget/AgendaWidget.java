@@ -102,7 +102,11 @@ public class AgendaWidget extends AppWidgetProvider {
 
     int[] ends = settings.ends();
     int dailyCutoff = ends.length > 0 ? ends[ends.length - 1] : 1240;
-    boolean showTomorrow = activeCourse == null && nowMinute >= dailyCutoff;
+    boolean debugTomorrow = settings.widgetDebugTomorrow();
+    if (debugTomorrow) {
+      activeCourse = null;
+    }
+    boolean showTomorrow = debugTomorrow || (activeCourse == null && nowMinute >= dailyCutoff);
 
     LocalDate displayDate = showTomorrow ? today.plusDays(1) : today;
     List<Item> coursesToShow = new ArrayList<>();
@@ -113,6 +117,9 @@ public class AgendaWidget extends AppWidgetProvider {
         for (Item item : Schedule.on(all, displayDate, settings.term())) {
           if (!item.done) coursesToShow.add(item);
         }
+        if (debugTomorrow && coursesToShow.isEmpty()) {
+          coursesToShow.addAll(buildDebugTomorrowCourses(all, displayDate));
+        }
       }
     }
 
@@ -122,6 +129,8 @@ public class AgendaWidget extends AppWidgetProvider {
     } else if (!showTomorrow) {
       statusText =
           coursesToShow.isEmpty() ? "今日课程" : "今日待上 · " + coursesToShow.size() + "节";
+    } else if (debugTomorrow) {
+      statusText = "明日课程 · " + coursesToShow.size() + "节 (调试)";
     } else {
       statusText =
           coursesToShow.isEmpty() ? "明日课程" : "明日课程 · " + coursesToShow.size() + "节";
@@ -140,7 +149,25 @@ public class AgendaWidget extends AppWidgetProvider {
 
       Bundle opts = manager.getAppWidgetOptions(id);
       int minH = opts != null ? opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
-      int maxRows = minH > 0 && minH < 120 ? 2 : (minH >= 120 && minH < 180 ? 4 : ROW_IDS.length);
+      if (minH <= 0) {
+        AppWidgetProviderInfo info = manager.getAppWidgetInfo(id);
+        if (info != null && info.provider != null) {
+          String clsName = info.provider.getShortClassName();
+          if (clsName.contains("Large")) minH = 220;
+          else if (clsName.contains("Medium")) minH = 150;
+          else minH = 150;
+        }
+      }
+      int maxRows;
+      if (minH > 0 && minH < 130) {
+        maxRows = 2;
+      } else if (minH > 0 && minH < 195) {
+        maxRows = 3;
+      } else if (minH > 0 && minH < 250) {
+        maxRows = 4;
+      } else {
+        maxRows = ROW_IDS.length;
+      }
 
       if (activeCourse != null) {
         view.setViewVisibility(R.id.widget_active_box, View.VISIBLE);
@@ -199,6 +226,49 @@ public class AgendaWidget extends AppWidgetProvider {
               PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
       manager.updateAppWidget(id, view);
     }
+  }
+
+  private static List<Item> buildDebugTomorrowCourses(List<Item> all, LocalDate tomorrow) {
+    int targetDay = tomorrow.getDayOfWeek().getValue();
+    List<Item> sameWeekday = new ArrayList<>();
+    for (Item item : all) {
+      if (!"EVENT".equals(item.type) && item.day == targetDay) {
+        sameWeekday.add(item);
+      }
+    }
+    if (!sameWeekday.isEmpty()) {
+      sameWeekday.sort(Comparator.comparingInt(a -> a.start));
+      return sameWeekday;
+    }
+    for (int d = 1; d <= 7; d++) {
+      List<Item> dayList = new ArrayList<>();
+      for (Item item : all) {
+        if (!"EVENT".equals(item.type) && item.day == d) {
+          dayList.add(item);
+        }
+      }
+      if (dayList.size() >= 2) {
+        dayList.sort(Comparator.comparingInt(a -> a.start));
+        return dayList;
+      }
+    }
+    List<Item> mock = new ArrayList<>();
+    Object[][] rows = {
+      {"大学英语(一)", 510, 610, "致明楼_501", "郭梦莹"},
+      {"普通化学实验", 650, 750, "化工学院楼(盐湖大楼)普通化学实验室", "包新颜"},
+      {"高等数学", 840, 940, "菌格楼_2号多媒体教室", "梁昌弘"}
+    };
+    for (Object[] r : rows) {
+      Item i = new Item();
+      i.title = (String) r[0];
+      i.day = targetDay;
+      i.start = (int) r[1];
+      i.end = (int) r[2];
+      i.location = (String) r[3];
+      i.teacher = (String) r[4];
+      mock.add(i);
+    }
+    return mock;
   }
 
   private static String formatSub(Item item, String fallback) {

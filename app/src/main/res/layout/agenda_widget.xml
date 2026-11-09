@@ -4,8 +4,8 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -20,33 +20,35 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:ellipsize="end"
+            android:includeFontPadding="false"
             android:maxLines="1"
             android:text="今日待上 · 3节"
             android:textColor="@color/widget_accent"
-            android:textSize="14sp"
+            android:textSize="12.5sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:includeFontPadding="false"
             android:maxLines="1"
             android:text="11月9日 周一"
             android:textColor="@color/widget_text"
-            android:textSize="12.5sp" />
+            android:textSize="11.5sp" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/widget_active_box"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="5dp"
         android:layout_weight="1"
         android:background="@drawable/widget_item_bg"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="6dp"
         android:visibility="gone">
 
         <TextView
@@ -54,41 +56,44 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
+            android:includeFontPadding="false"
             android:maxLines="2"
             android:text="普通化学II"
             android:textColor="@color/widget_title"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_time"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:fontFeatureSettings="tnum"
+            android:includeFontPadding="false"
             android:maxLines="1"
             android:text="08:30–10:10"
             android:textColor="@color/widget_accent"
-            android:textSize="17sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:ellipsize="end"
+            android:includeFontPadding="false"
             android:maxLines="2"
             android:text="致明楼_507 · 党君"
             android:textColor="@color/widget_text"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/widget_list_box"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:layout_weight="1"
         android:orientation="vertical"
         android:visibility="visible">
@@ -97,13 +102,13 @@
             android:id="@+id/widget_row_0"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="3dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="visible">
 
             <LinearLayout
@@ -118,10 +123,11 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="普通化学II"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -130,10 +136,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="08:30–10:10"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -141,25 +148,26 @@
                 android:id="@+id/widget_row_0_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="致明楼_507 · 党君"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/widget_row_1"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="3dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="visible">
 
             <LinearLayout
@@ -174,10 +182,11 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="大学英语(一)"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -186,10 +195,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="10:50–12:30"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -197,25 +207,26 @@
                 android:id="@+id/widget_row_1_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="致明楼_501 · 郭梦莹"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/widget_row_2"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginBottom="2dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="visible">
 
             <LinearLayout
@@ -230,10 +241,11 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="高等数学"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -242,10 +254,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:text="14:00–15:40"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -253,26 +266,27 @@
                 android:id="@+id/widget_row_2_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
-                android:text="蘭格楼_2号多媒体教室 · 梁昌弘"
+                android:text="菌格楼_2号多媒体教室 · 梁昌弘"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/widget_row_3"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="2dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -287,9 +301,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -298,9 +313,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -308,25 +324,26 @@
                 android:id="@+id/widget_row_3_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/widget_row_4"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="1dp"
+            android:layout_marginBottom="2dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -341,9 +358,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -352,9 +370,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -362,24 +381,25 @@
                 android:id="@+id/widget_row_4_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/widget_row_5"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1dp"
             android:layout_weight="1"
             android:background="@drawable/widget_item_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="2dp"
+            android:paddingVertical="0dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -394,9 +414,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_title"
-                    android:textSize="15sp"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -405,9 +426,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:textColor="@color/widget_accent"
-                    android:textSize="13sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -415,11 +437,12 @@
                 android:id="@+id/widget_row_5_loc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="-2dp"
                 android:ellipsize="end"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/widget_text"
-                android:textSize="12.5sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

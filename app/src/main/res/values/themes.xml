@@ -69,4 +69,7 @@
     </style>
 
     <string name="app_name">YIClass</string>
+    <string name="widget_desc_small">正在上课独占卡片 · 待上双课紧凑预览</string>
+    <string name="widget_desc_medium">今日待上多节课程双行全宽卡片 · 晚课后切换明日课表</string>
+    <string name="widget_desc_large">全天课程完整列表 · 支持自由拉伸缩放</string>
 </resources>

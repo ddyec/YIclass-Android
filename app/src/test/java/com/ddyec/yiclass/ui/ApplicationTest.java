@@ -265,9 +265,26 @@ public class ApplicationTest {
     android.widget.TextView row1Loc =
         widgetView.findViewById(com.ddyec.yiclass.R.id.widget_row_1_loc);
     assertTrue(row1Loc.getText().toString().contains("化工学院楼(盐湖大楼)普通化学实验室"));
-    captureView(widgetView, 360, 220, "widget-light");
-    captureView(widgetView, 360, 200, "widget-medium");
-    captureView(widgetView, 360, 300, "widget-large");
+    captureView(widgetView, 340, 165, "widget-light");
+    for (int i = 0; i < 3; i++) {
+      View row = widgetView.findViewById(
+          new int[] {
+            com.ddyec.yiclass.R.id.widget_row_0,
+            com.ddyec.yiclass.R.id.widget_row_1,
+            com.ddyec.yiclass.R.id.widget_row_2
+          }[i]);
+      View loc = widgetView.findViewById(
+          new int[] {
+            com.ddyec.yiclass.R.id.widget_row_0_loc,
+            com.ddyec.yiclass.R.id.widget_row_1_loc,
+            com.ddyec.yiclass.R.id.widget_row_2_loc
+          }[i]);
+      assertTrue(
+          "Row " + i + " loc bottom (" + loc.getBottom() + ") overflows row height (" + row.getHeight() + ")",
+          loc.getBottom() <= row.getHeight());
+    }
+    captureView(widgetView, 340, 165, "widget-medium");
+    captureView(widgetView, 340, 260, "widget-large");
     copyScreenshotToDrawable("widget-medium", "widget_preview_medium");
     copyScreenshotToDrawable("widget-large", "widget_preview_large");
 
@@ -300,11 +317,32 @@ public class ApplicationTest {
     widgetView = widgets.getViewFor(id);
     meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
     assertEquals("明日课程 · 3节", meta.getText().toString());
+
+    // 5. Debug switch ON ("widget_debug_tomorrow" = "1"):
+    // Even at 09:00 Monday (in-class time) or 12:00 Monday (before evening cutoff),
+    // must force showing tomorrow's courses for visual container/overflow inspection!
+    settings.put("widget_debug_tomorrow", "1");
+    com.ddyec.yiclass.widget.AgendaWidget.updateAt(
+        context,
+        android.appwidget.AppWidgetManager.getInstance(context),
+        new int[] {id},
+        ZonedDateTime.of(2026, 11, 9, 9, 0, 0, 0, settings.zone()));
+    widgetView = widgets.getViewFor(id);
+    meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
+    assertEquals("明日课程 · 3节 (调试)", meta.getText().toString());
+    assertEquals(
+        View.GONE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_active_box).getVisibility());
+    assertEquals(
+        View.VISIBLE,
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_list_box).getVisibility());
+    settings.put("widget_debug_tomorrow", "0");
   }
 
   private void copyScreenshotToDrawable(String screenshotName, String drawableName) throws Exception {
     File src = new File("build/screenshots/" + screenshotName + ".png");
-    File dst = new File("src/main/res/drawable/" + drawableName + ".png");
+    File dst = new File("src/main/res/drawable-xxxhdpi/" + drawableName + ".png");
+    dst.getParentFile().mkdirs();
     if (src.exists()) {
       java.nio.file.Files.copy(
           src.toPath(), dst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -336,13 +374,16 @@ public class ApplicationTest {
   }
 
   private void captureView(View view, int w, int h, String name) throws Exception {
+    int scale = 4;
     view.measure(
         View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
         View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
     view.layout(0, 0, w, h);
     invalidateTree(view);
-    Bitmap image = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-    view.draw(new Canvas(image));
+    Bitmap image = Bitmap.createBitmap(w * scale, h * scale, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(image);
+    canvas.scale(scale, scale);
+    view.draw(canvas);
     File output = new File("build/screenshots/" + name + ".png");
     output.getParentFile().mkdirs();
     try (OutputStream stream = new FileOutputStream(output)) {
