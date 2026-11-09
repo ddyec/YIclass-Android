@@ -482,9 +482,7 @@ public class MainActivity extends AppCompatActivity {
     axis.setGravity(Gravity.CENTER);
     header.addView(axis, new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 50)));
 
-    LocalDate today = LocalDate.now(settings.zone());
-    boolean todayInWeek = !today.isBefore(monday) && !today.isAfter(monday.plusDays(6));
-    LocalDate highlightDate = todayInWeek ? today : selected;
+    LocalDate highlightDate = selected;
 
     for (int d = 0; d < 7; d++) {
       LocalDate date = monday.plusDays(d);
@@ -509,41 +507,50 @@ public class MainActivity extends AppCompatActivity {
       numLp.topMargin = Ui.dp(this, 4);
       cell.addView(dayNum, numLp);
 
-      cell.setContentDescription(date + "，查看日课表");
+      cell.setContentDescription(date + "，选择或查看日课表");
       cell.setClickable(true);
       cell.setFocusable(true);
       cell.setOnClickListener(
           v -> {
-            selected = date;
-            mode = 1;
-            render();
+            if (!date.equals(selected)) {
+              selected = date;
+              evening = null;
+              render();
+            } else {
+              mode = 1;
+              render();
+            }
           });
-      header.addView(cell, new LinearLayout.LayoutParams(0, Ui.dp(this, 52), 1));
+      header.addView(cell, new LinearLayout.LayoutParams(0, Ui.dp(this, 50), 1));
     }
     parent.addView(header);
 
-    boolean hasNight = false;
-    for (int d = 0; d < 7; d++)
-      if (Schedule.on(snapshot.items(), monday.plusDays(d), settings.term()).stream()
-          .anyMatch(i -> i.start >= 1080)) hasNight = true;
-    boolean showEvening = evening != null ? evening : hasNight;
+    int[] starts = settings.starts(), ends = settings.ends();
+    int nightStart = starts.length > 8 ? starts[8] : 1140;
+    boolean hasNight =
+        Schedule.on(snapshot.items(), highlightDate, settings.term()).stream()
+            .anyMatch(i -> !i.done && i.start >= nightStart);
+    boolean showEvening = Boolean.TRUE.equals(evening);
     int count = showEvening ? 10 : 8;
     int axisW = Ui.dp(this, 40);
-    int rowH = Ui.dp(this, 60);
+    int rowH = Ui.dp(this, 52);
     int breakH = 0;
     int totalH = periodTop(count, rowH, breakH);
 
+    FrameLayout gridWrap = new FrameLayout(this);
+    parent.addView(gridWrap, new LinearLayout.LayoutParams(-1, 0, 1));
+
     ScrollView vertical = new ScrollView(this);
     vertical.setVerticalScrollBarEnabled(false);
-    parent.addView(vertical, new LinearLayout.LayoutParams(-1, 0, 1));
+    gridWrap.addView(vertical, new FrameLayout.LayoutParams(-1, -1));
 
     LinearLayout scrollBody = Ui.column(this);
+    scrollBody.setPadding(0, 0, 0, Ui.dp(this, 46));
     vertical.addView(scrollBody, new ScrollView.LayoutParams(-1, -2));
 
     FrameLayout gridStage = new FrameLayout(this);
     scrollBody.addView(gridStage, new LinearLayout.LayoutParams(-1, totalH));
 
-    int[] starts = settings.starts(), ends = settings.ends();
     for (int i = 0; i < count; i++) {
       int y = periodTop(i, rowH, breakH);
       LinearLayout timeCell = Ui.column(this);
@@ -588,7 +595,7 @@ public class MainActivity extends AppCompatActivity {
 
       List<Item> dayItems = new ArrayList<>();
       for (Item item : Schedule.on(snapshot.items(), date, settings.term())) {
-        if (!showEvening && item.start >= 1080) continue;
+        if (!showEvening && item.start >= nightStart) continue;
         if (position(item.start, starts, ends) < count) dayItems.add(item);
       }
       List<List<Item>> groups = overlapGroups(dayItems);
@@ -628,24 +635,56 @@ public class MainActivity extends AppCompatActivity {
       }
     }
 
-    LinearLayout footer = Ui.row(this);
-    footer.setGravity(Gravity.CENTER);
-    footer.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 16));
-    MaterialButton nightBtn =
-        Ui.withIcon(
-            Ui.tonalButton(
-                this,
-                (hasNight ? "晚间有课" : "晚间无课") + " · " + (showEvening ? "收起" : "展开"),
-                () -> {
-                  evening = !showEvening;
-                  render();
-                }),
-            showEvening ? R.drawable.ic_expand_less : R.drawable.ic_bedtime);
-    nightBtn.setMinHeight(0);
-    nightBtn.setMinimumHeight(0);
-    nightBtn.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 8));
-    footer.addView(nightBtn, new LinearLayout.LayoutParams(-2, -2));
-    scrollBody.addView(footer);
+    MaterialCardView nightCapsule = new MaterialCardView(this);
+    nightCapsule.setRadius(Ui.dp(this, 999));
+    nightCapsule.setCardElevation(Ui.dp(this, 2));
+    boolean highlightCapsule = hasNight || showEvening;
+    nightCapsule.setCardBackgroundColor(
+        highlightCapsule ? Ui.primaryContainer(this) : Ui.surfaceHigh(this));
+    nightCapsule.setStrokeWidth(Ui.dp(this, 1));
+    nightCapsule.setStrokeColor(
+        highlightCapsule ? Ui.primary(this) : Ui.outlineVariant(this));
+
+    LinearLayout capRow = Ui.row(this);
+    capRow.setGravity(Gravity.CENTER_VERTICAL);
+    capRow.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 14), Ui.dp(this, 6));
+    int capColor = highlightCapsule ? Ui.onPrimaryContainer(this) : Ui.muted(this);
+    ImageView capIcon =
+        Ui.icon(
+            this,
+            showEvening ? R.drawable.ic_expand_less : R.drawable.ic_bedtime,
+            15,
+            capColor);
+    capRow.addView(capIcon);
+
+    String capLabel;
+    if (showEvening) {
+      capLabel = (hasNight ? "夜间有课" : "夜间无课") + " · 点击收起";
+    } else if (hasNight) {
+      capLabel = "夜间有课 · 点击展开";
+    } else {
+      capLabel = "夜间无课";
+    }
+    TextView capText = Ui.text(this, capLabel, 12f, capColor);
+    Ui.emphasize(capText, highlightCapsule ? 700 : 600);
+    capText.setPadding(Ui.dp(this, 6), 0, 0, 0);
+    capRow.addView(capText);
+    nightCapsule.addView(capRow);
+    nightCapsule.setClickable(true);
+    nightCapsule.setFocusable(true);
+    nightCapsule.setOnClickListener(
+        v -> {
+          evening = !showEvening;
+          render();
+        });
+
+    FrameLayout.LayoutParams capLp =
+        new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+    capLp.bottomMargin = Ui.dp(this, 8);
+    gridWrap.addView(nightCapsule, capLp);
+    if (showEvening) {
+      vertical.post(() -> vertical.fullScroll(View.FOCUS_DOWN));
+    }
   }
 
   private View buildGridCourseCard(Item item, LocalDate date, boolean conflict) {

@@ -125,7 +125,21 @@ public class ApplicationTest {
     a.selected = LocalDate.of(2026, 11, 9);
     a.monday = LocalDate.of(2026, 11, 9);
     a.render();
+    assertTrue(hasTextInTree(a.body, "夜间无课"));
+    assertFalse(hasTextInTree(a.body, "夜间有课"));
     capture(a, "week-light");
+
+    // Wednesday (2026-11-11) has an evening class (19:00-20:40):
+    // Must STILL stay collapsed by default and show "夜间有课 · 点击展开"
+    a.selected = LocalDate.of(2026, 11, 11);
+    a.evening = null;
+    a.render();
+    assertTrue(hasTextInTree(a.body, "夜间有课 · 点击展开"));
+    a.evening = true;
+    a.render();
+    assertTrue(hasTextInTree(a.body, "夜间有课 · 点击收起"));
+    a.evening = null;
+    a.selected = LocalDate.of(2026, 11, 9);
     a.mode = 1;
     a.render();
     capture(a, "day-light");
@@ -365,6 +379,18 @@ public class ApplicationTest {
     new AssistantSheet(a).show();
     org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     controller.pause().stop().destroy();
+  }
+
+  private boolean hasTextInTree(View view, String target) {
+    if (view instanceof android.widget.TextView tv && tv.getText() != null) {
+      if (tv.getText().toString().contains(target)) return true;
+    }
+    if (view instanceof android.view.ViewGroup group) {
+      for (int i = 0; i < group.getChildCount(); i++) {
+        if (hasTextInTree(group.getChildAt(i), target)) return true;
+      }
+    }
+    return false;
   }
 
   private void invalidateTree(View view) {

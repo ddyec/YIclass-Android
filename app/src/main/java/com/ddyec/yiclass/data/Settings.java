@@ -55,6 +55,10 @@ public final class Settings {
     return "1".equals(get("widget_debug_tomorrow", "0"));
   }
 
+  public boolean liveNotificationCard() {
+    return "1".equals(get("live_card", "0"));
+  }
+
   public int[] starts() {
     return slots("starts", Schedule.STARTS);
   }

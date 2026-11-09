@@ -228,6 +228,25 @@ final class SettingsScreen {
             0,
             1,
             debugTomorrowSwitch::toggle));
+    MaterialSwitch liveCardSwitch = new MaterialSwitch(a);
+    liveCardSwitch.setChecked(a.settings.liveNotificationCard());
+    liveCardSwitch.setContentDescription("锁屏与通知栏常驻课表卡片");
+    liveCardSwitch.setOnCheckedChangeListener(
+        (v, on) -> {
+          a.settings.put("live_card", on ? "1" : "0");
+          com.ddyec.yiclass.reminder.Reminders.refresh(a);
+          a.toast(on ? "已开启锁屏与通知栏常驻课表卡片" : "已关闭常驻课表卡片");
+        });
+    perm.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_event_available,
+            "锁屏与通知栏常驻课表卡片",
+            "兼容弱化传统小组件的品牌系统，在锁屏与通知栏常驻实时课表",
+            liveCardSwitch,
+            0,
+            1,
+            liveCardSwitch::toggle));
     perm.add(
         Ui.listItem(
             a,

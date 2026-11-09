@@ -17,6 +17,8 @@ import java.util.*;
 
 public final class Reminders {
   public static final String CHANNEL = "classes";
+  public static final String LIVE_CHANNEL = "live_schedule";
+  private static final int LIVE_NOTIFICATION_ID = 9001;
 
   private Reminders() {}
 
@@ -69,6 +71,136 @@ public final class Reminders {
       alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.toEpochMilli(), pending);
     else alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.toEpochMilli(), pending);
     AgendaWidget.refreshAll(c);
+    updateLiveCardAndShortcuts(c, s, items);
+  }
+
+  private static void updateLiveCardAndShortcuts(Context c, Settings s, List<Item> all) {
+    ZonedDateTime zdt = ZonedDateTime.now(s.zone());
+    LocalDate today = zdt.toLocalDate();
+    int nowMin = zdt.getHour() * 60 + zdt.getMinute();
+    int[] ends = s.ends();
+    int dailyCutoff = ends.length > 0 ? ends[ends.length - 1] : 1240;
+    List<Item> todayList = new ArrayList<>();
+    for (Item item : Schedule.on(all, today, s.term())) {
+      if (!item.done) todayList.add(item);
+    }
+    Item active = null;
+    List<Item> upcoming = new ArrayList<>();
+    for (Item item : todayList) {
+      if (item.start <= nowMin && nowMin < item.end) {
+        if (active == null) active = item;
+      } else if (item.start > nowMin) {
+        upcoming.add(item);
+      }
+    }
+    boolean showTomorrow = active == null && nowMin >= dailyCutoff;
+    LocalDate targetDate = showTomorrow ? today.plusDays(1) : today;
+    List<Item> displayList = new ArrayList<>();
+    if (active == null) {
+      if (!showTomorrow) {
+        displayList.addAll(upcoming);
+      } else {
+        for (Item item : Schedule.on(all, targetDate, s.term())) {
+          if (!item.done) displayList.add(item);
+        }
+      }
+    }
+
+    try {
+      android.content.pm.ShortcutManager sm =
+          c.getSystemService(android.content.pm.ShortcutManager.class);
+      if (sm != null) {
+        List<android.content.pm.ShortcutInfo> shortcuts = new ArrayList<>();
+        List<Item> scSource = active != null ? List.of(active) : displayList;
+        for (int i = 0; i < Math.min(3, scSource.size()); i++) {
+          Item item = scSource.get(i);
+          String shortLabel = Schedule.time(item.start) + " " + item.title;
+          if (shortLabel.length() > 14) shortLabel = shortLabel.substring(0, 14);
+          String longLabel =
+              Schedule.time(item.start)
+                  + "–"
+                  + Schedule.time(item.end)
+                  + " "
+                  + item.title
+                  + (item.location.isEmpty() ? "" : " · " + item.location);
+          shortcuts.add(
+              new android.content.pm.ShortcutInfo.Builder(c, "course_" + i)
+                  .setShortLabel(shortLabel)
+                  .setLongLabel(longLabel)
+                  .setIcon(
+                      android.graphics.drawable.Icon.createWithResource(
+                          c, R.drawable.ic_nav_schedule))
+                  .setIntent(
+                      new Intent(c, MainActivity.class)
+                          .setAction(Intent.ACTION_VIEW)
+                          .putExtra("date", targetDate.toString()))
+                  .build());
+        }
+        sm.setDynamicShortcuts(shortcuts);
+      }
+    } catch (Exception ignored) {
+    }
+
+    var nm = c.getSystemService(NotificationManager.class);
+    if (!s.liveNotificationCard()) {
+      nm.cancel(LIVE_NOTIFICATION_ID);
+      return;
+    }
+    if (Build.VERSION.SDK_INT >= 33
+        && ContextCompat.checkSelfPermission(c, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED) {
+      return;
+    }
+    nm.createNotificationChannel(
+        new NotificationChannel(
+            LIVE_CHANNEL, "锁屏与通知栏常驻课表卡片", NotificationManager.IMPORTANCE_LOW));
+    String title;
+    String body;
+    if (active != null) {
+      title = "正在上课 · " + active.title;
+      body =
+          Schedule.time(active.start)
+              + "–"
+              + Schedule.time(active.end)
+              + " · "
+              + (active.location.isEmpty() ? "正在上课" : active.location);
+    } else if (!displayList.isEmpty()) {
+      title = (showTomorrow ? "明日课程 · " : "今日待上 · ") + displayList.size() + "节";
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < Math.min(4, displayList.size()); i++) {
+        Item item = displayList.get(i);
+        if (i > 0) sb.append('\n');
+        sb.append(Schedule.time(item.start))
+            .append('–')
+            .append(Schedule.time(item.end))
+            .append("  ")
+            .append(item.title);
+        if (!item.location.isEmpty()) sb.append(" · ").append(item.location);
+      }
+      body = sb.toString();
+    } else {
+      title = showTomorrow ? "明日课程" : "今日课程";
+      body = showTomorrow ? "明日没有课程安排" : "今日没有更多课程";
+    }
+    PendingIntent open =
+        PendingIntent.getActivity(
+            c,
+            LIVE_NOTIFICATION_ID,
+            new Intent(c, MainActivity.class).putExtra("date", targetDate.toString()),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    nm.notify(
+        LIVE_NOTIFICATION_ID,
+        new NotificationCompat.Builder(c, LIVE_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setSilent(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build());
   }
 
   public static void deliver(Context c, long scheduledAt) {
