@@ -63,6 +63,13 @@ cd "$SAVED" >/dev/null
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
 # Determine the Java command to use to start the JVM.
+if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/javac" ] ; then
+    if [ -x "/usr/lib/jvm/java-21-openjdk-arm64/bin/javac" ] ; then
+        export JAVA_HOME="/usr/lib/jvm/java-21-openjdk-arm64"
+    elif [ -x "/usr/lib/jvm/java-21-openjdk-amd64/bin/javac" ] ; then
+        export JAVA_HOME="/usr/lib/jvm/java-21-openjdk-amd64"
+    fi
+fi
 if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
         # IBM's JDK on AIX uses strange locations for the executables

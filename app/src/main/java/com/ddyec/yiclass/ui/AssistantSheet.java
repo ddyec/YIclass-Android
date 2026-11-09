@@ -30,33 +30,25 @@ final class AssistantSheet {
     LinearLayout box = Ui.column(a);
     box.setPadding(Ui.dp(a, 24), 0, Ui.dp(a, 24), Ui.dp(a, 24));
     box.addView(Ui.sheetHandle(a));
-    // Expressive header: shape mark + emphasized headline.
-    LinearLayout header = Ui.row(a);
-    header.addView(
-        Ui.shapeIcon(
-            a,
-            ExpressiveShapes.SUNNY,
-            R.drawable.ic_auto_awesome,
-            Ui.primaryContainer(a),
-            Ui.onPrimaryContainer(a),
-            56,
-            28));
-    LinearLayout headText = Ui.column(a);
-    headText.setPadding(Ui.dp(a, 14), 0, 0, 0);
-    TextView headTitle = Ui.heading(a, "你的时间助手");
-    headTitle.setPadding(0, 0, 0, 0);
-    headText.addView(headTitle);
-    headText.addView(
-        Ui.label(a, "AI 时间规划师 · 本机预审确认", Ui.primary(a)));
-    header.addView(headText, new LinearLayout.LayoutParams(0, -2, 1));
-    box.addView(header, Ui.wrap(a, 0, 4));
-    box.addView(Ui.note(a, "调课、安排自习、添加或删除日程。每次变更都先给你看，确认后保存。"));
-    TextInputEditText input = Ui.field(box, "想怎么安排？", "", true);
+
+    LinearLayout hero = Ui.column(a);
+    hero.setGravity(Gravity.CENTER_HORIZONTAL);
+    hero.setPadding(0, Ui.dp(a, 8), 0, Ui.dp(a, 14));
+    ImageView mark = Ui.icon(a, R.drawable.ic_book, 56, Ui.ink(a));
+    hero.addView(mark);
+    TextView headTitle = Ui.heading(a, "我们应该安排什么？");
+    headTitle.setGravity(Gravity.CENTER);
+    headTitle.setPadding(0, Ui.dp(a, 10), 0, Ui.dp(a, 2));
+    hero.addView(headTitle);
+    box.addView(hero);
+
+    TextInputEditText input = Ui.field(box, "说说你的安排…", "", true);
     Ui.startIcon(input, R.drawable.ic_edit_calendar);
-    // Suggestion chips.
+
     ChipGroup examples = new ChipGroup(a);
     examples.setChipSpacingVertical(Ui.dp(a, 4));
-    for (String text : new String[] {"检查本周是否有时间冲突", "帮我在明天下午安排一小时自习", "把明天的篮球课调到周五下午"}) {
+    for (String text :
+        new String[] {"检查本周是否有时间冲突", "帮我在明天下午安排一小时自习", "把明天的篮球课调到周五下午"}) {
       Chip chip = new Chip(a);
       chip.setText(text);
       chip.setChipIconResource(R.drawable.ic_auto_awesome);
@@ -67,11 +59,7 @@ final class AssistantSheet {
     }
     box.addView(examples, Ui.wrap(a, 0, 4));
     TextView status =
-        Ui.note(
-            a,
-            "当前接口："
-                + a.settings.get("endpoint", "https://api.deepseek.com")
-                + "\n发送时会提交当前课表和这条请求，不发送 PDF 文件。请勿输入无关隐私。");
+        Ui.note(a, "当前接口：" + a.settings.get("endpoint", "https://api.deepseek.com"));
     box.addView(status);
     LoadingIndicator loading = new LoadingIndicator(a);
     loading.setVisibility(View.GONE);
@@ -81,13 +69,14 @@ final class AssistantSheet {
     LinearLayout answer = Ui.column(a);
     box.addView(answer);
     MaterialButton send =
-        Ui.withIcon(Ui.heroButton(a, "生成安排建议", () -> {}), R.drawable.ic_send);
+        Ui.withIcon(Ui.heroButton(a, "发送请求", () -> {}), R.drawable.ic_send);
     LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(-1, -2);
     sendLp.topMargin = Ui.dp(a, 8);
     sendLp.bottomMargin = Ui.dp(a, 4);
     box.addView(send, sendLp);
     box.addView(
-        Ui.withIcon(Ui.textButton(a, "配置 AI 服务", () -> new SettingsScreen(a).api()), R.drawable.ic_key),
+        Ui.withIcon(
+            Ui.textButton(a, "配置 AI 服务", () -> new SettingsScreen(a).api()), R.drawable.ic_key),
         new LinearLayout.LayoutParams(-1, -2));
     send.setOnClickListener(
         v -> {
@@ -117,7 +106,7 @@ final class AssistantSheet {
           String zone = a.settings.zone().getId();
           send.setEnabled(false);
           loading.setVisibility(View.VISIBLE);
-          status.setText("正在生成建议…");
+          status.setText("正在整理…");
           answer.removeAllViews();
           a.worker.execute(
               () -> {
@@ -132,7 +121,7 @@ final class AssistantSheet {
                         if (a.isDestroyed() || !dialog.isShowing()) return;
                         send.setEnabled(true);
                         loading.setVisibility(View.GONE);
-                        status.setText("建议已生成 · 尚未修改课表");
+                        status.setText("方案已生成 · 确认后生效");
                         history.add(new AssistantClient.Turn("user", question));
                         history.add(new AssistantClient.Turn("assistant", Store.JSON.toJson(plan)));
                         MaterialCardView resultCard = Ui.surfaceCard(a);
@@ -218,7 +207,7 @@ final class AssistantSheet {
                         if (a.isDestroyed() || !dialog.isShowing()) return;
                         send.setEnabled(true);
                         loading.setVisibility(View.GONE);
-                        status.setText("未能生成建议，课表没有变化。请检查网络、Key和模型设置。");
+                        status.setText("未能生成方案，请检查网络、Key 和模型设置。");
                         a.error(e);
                       });
                 }

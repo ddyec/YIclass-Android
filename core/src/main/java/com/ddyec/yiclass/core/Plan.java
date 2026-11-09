@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import java.time.LocalDate;
 import java.util.*;
 
-/** AI output is a proposal, validated against a snapshot and applied atomically after review. */
 public final class Plan {
   public String message = "";
   public List<Operation> operations = new ArrayList<>();

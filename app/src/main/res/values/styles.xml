@@ -1,11 +1,9 @@
 <resources>
-    <!-- Custom theme attributes so programmatic views can opt into Expressive size overlays. -->
     <attr name="yiButtonFilledMedium" format="reference" />
     <attr name="yiButtonTonalMedium" format="reference" />
     <attr name="yiIconButtonTonalMedium" format="reference" />
     <attr name="yiTextField" format="reference" />
 
-    <!-- Expressive corner scale: 4 / 8 / 12 / 16 / 28 dp -->
     <style name="ShapeAppearance.YIClass.ExtraSmall" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">4dp</item>
@@ -24,10 +22,9 @@
     </style>
     <style name="ShapeAppearance.YIClass.ExtraLarge" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">28dp</item>
+        <item name="cornerSize">24dp</item>
     </style>
 
-    <!-- Medium (56dp) Expressive buttons for primary calls to action -->
     <style name="Widget.YIClass.Button.Filled.Medium" parent="Widget.Material3Expressive.Button">
         <item name="materialSizeOverlay">@style/SizeOverlay.Material3Expressive.Button.Medium</item>
     </style>

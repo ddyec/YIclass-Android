@@ -1,3 +1,4 @@
 -keep class com.ddyec.yiclass.core.** { *; }
 -keepattributes Signature
 -dontwarn org.bouncycastle.**
+-dontwarn com.gemalto.jp2.**

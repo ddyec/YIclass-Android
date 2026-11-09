@@ -32,13 +32,24 @@ public final class Reminders {
     Instant now = Instant.now();
     LocalDate today = now.atZone(s.zone()).toLocalDate();
     Instant next = today.plusDays(1).atStartOfDay(s.zone()).toInstant();
-    // Midnight refresh keeps the widget and future reminders rolling, even during vacations.
-    for (int d = 0; d <= 2; d++)
-      for (Item i : Schedule.on(items, today.plusDays(d), s.term())) {
-        if (i.done || i.reminder < 0) continue;
-        Instant at = Schedule.reminder(i, today.plusDays(d), s.zone());
-        if (at.isAfter(now) && at.isBefore(next)) next = at;
+    for (int d = 0; d <= 2; d++) {
+      LocalDate date = today.plusDays(d);
+      for (Item i : Schedule.on(items, date, s.term())) {
+        if (i.done) continue;
+        if (i.reminder >= 0) {
+          Instant at = Schedule.reminder(i, date, s.zone());
+          if (at.isAfter(now) && at.isBefore(next)) next = at;
+        }
+        Instant startAt =
+            date.atTime(LocalTime.MIDNIGHT.plusMinutes(i.start)).atZone(s.zone()).toInstant();
+        if (startAt.isAfter(now) && startAt.isBefore(next)) next = startAt;
+        Instant endAt =
+            date.atTime(LocalTime.MIDNIGHT.plusMinutes(Math.min(1439, i.end)))
+                .atZone(s.zone())
+                .toInstant();
+        if (endAt.isAfter(now) && endAt.isBefore(next)) next = endAt;
       }
+    }
     var alarm = c.getSystemService(AlarmManager.class);
     Intent intent = new Intent(c, ReminderReceiver.class).putExtra("at", next.toEpochMilli());
     PendingIntent pending =
@@ -55,7 +66,6 @@ public final class Reminders {
   public static void deliver(Context c, long scheduledAt) {
     Settings s = new Settings(c);
     Instant at = Instant.ofEpochMilli(scheduledAt), now = Instant.now();
-    // Don't fire stale reminders after a device was offline for a long time.
     if (at.isAfter(now) || Duration.between(at, now).toMinutes() > 60) return;
     if (Build.VERSION.SDK_INT >= 33
         && ContextCompat.checkSelfPermission(c, Manifest.permission.POST_NOTIFICATIONS)

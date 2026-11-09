@@ -16,11 +16,10 @@ import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.ddyec.yiclass.widget.AgendaWidget;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.DynamicColors;
-import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
@@ -33,118 +32,86 @@ final class SettingsScreen {
   }
 
   View build() {
+    LinearLayout outer = Ui.column(a);
+
+    LinearLayout topBar = Ui.row(a);
+    topBar.setPadding(Ui.dp(a, 20), Ui.dp(a, 10), Ui.dp(a, 20), Ui.dp(a, 6));
+    TextView pageTitle = Ui.display(a, "设置");
+    pageTitle.setTextSize(26);
+    topBar.addView(pageTitle);
+    outer.addView(topBar);
+
     LinearLayout box = Ui.column(a);
-    box.setPadding(Ui.dp(a, 16), Ui.dp(a, 8), Ui.dp(a, 16), Ui.dp(a, 96));
+    box.setPadding(Ui.dp(a, 16), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 96));
 
     boolean notifications = NotificationManagerCompat.from(a).areNotificationsEnabled();
     boolean exact =
         Build.VERSION.SDK_INT < 31
             || a.getSystemService(AlarmManager.class).canScheduleExactAlarms();
-    boolean allReady = notifications && exact;
-    int pending = (notifications ? 0 : 1) + (exact ? 0 : 1);
 
-    // Hero: emphasized page title with an Expressive shape reflecting permission health.
-    MaterialCardView hero = Ui.heroCard(a);
-    if (!allReady) hero.setCardBackgroundColor(Ui.tertiaryContainer(a));
-    int heroInk = allReady ? Ui.onPrimaryContainer(a) : Ui.onTertiaryContainer(a);
-    LinearLayout heroBody = Ui.row(a);
-    heroBody.setPadding(Ui.dp(a, 24), Ui.dp(a, 22), Ui.dp(a, 20), Ui.dp(a, 22));
-    LinearLayout heroText = Ui.column(a);
-    TextView heroTitle = Ui.display(a, "设置");
-    heroTitle.setTextColor(heroInk);
-    heroText.addView(heroTitle);
-    TextView heroState =
-        Ui.label(a, allReady ? "提醒权限全部就绪" : "还有 " + pending + " 项提醒权限待开启", heroInk);
-    heroState.setPadding(0, Ui.dp(a, 4), 0, Ui.dp(a, 6));
-    heroText.addView(heroState);
-    TextView heroNote = Ui.text(a, "课程保存在本机，可随时导出备份。", 13, heroInk);
-    heroNote.setAlpha(0.85f);
-    heroText.addView(heroNote);
-    heroBody.addView(heroText, new LinearLayout.LayoutParams(0, -2, 1));
-    heroBody.addView(
-        Ui.shapeIcon(
-            a,
-            allReady ? ExpressiveShapes.COOKIE_9 : ExpressiveShapes.SOFT_BURST,
-            allReady ? R.drawable.ic_check : R.drawable.ic_notifications,
-            allReady ? Ui.primary(a) : Ui.tertiary(a),
-            allReady
-                ? Ui.onPrimary(a)
-                : Ui.color(a, com.google.android.material.R.attr.colorOnTertiary),
-            76,
-            34));
-    hero.addView(heroBody);
-    box.addView(hero, Ui.wrap(a, 0, 4));
+    MaterialCardView brandCard = Ui.surfaceCard(a);
+    brandCard.setCardBackgroundColor(Ui.primaryContainer(a));
+    LinearLayout brandRow = Ui.row(a);
+    brandRow.setPadding(Ui.dp(a, 18), Ui.dp(a, 16), Ui.dp(a, 18), Ui.dp(a, 16));
+    MaterialCardView iconWrap = new MaterialCardView(a);
+    iconWrap.setRadius(Ui.dp(a, 14));
+    iconWrap.setCardElevation(0);
+    iconWrap.setStrokeWidth(0);
+    ImageView logoImg = new ImageView(a);
+    logoImg.setImageResource(R.drawable.brand_logo);
+    logoImg.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    iconWrap.addView(logoImg, new FrameLayout.LayoutParams(Ui.dp(a, 52), Ui.dp(a, 52)));
+    LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(Ui.dp(a, 52), Ui.dp(a, 52));
+    logoLp.rightMargin = Ui.dp(a, 14);
+    brandRow.addView(iconWrap, logoLp);
 
-    // Permissions & widget — segmented list.
-    section(box, "提醒与权限");
-    List<View> perm = new ArrayList<>();
-    perm.add(
-        permissionItem(
-            R.drawable.ic_notifications,
-            "课程与日程通知",
-            notifications ? "按每项安排的提前量发送横幅与锁屏提醒" : "未开启 · 到点时无法弹出提醒",
-            notifications,
-            () -> requestNotificationPermission(notifications)));
-    if (Build.VERSION.SDK_INT >= 31)
-      perm.add(
-          permissionItem(
-              R.drawable.ic_alarm,
-              "精确时间唤醒",
-              exact ? "低电量或息屏时也能准点提醒" : "近似模式 · 授权后可准点唤醒",
-              exact,
-              this::requestExactAlarmPermission));
-    perm.add(
-        Ui.listItem(
+    LinearLayout brandText = Ui.column(a);
+    TextView appName = Ui.title(a, "YI课表", Ui.onPrimaryContainer(a));
+    appName.setTextSize(19);
+    brandText.addView(appName);
+    long courseCount =
+        a.snapshot.items().stream().filter(i -> !"EVENT".equals(i.type)).count();
+    TextView summary =
+        Ui.text(
             a,
-            R.drawable.ic_widgets,
-            "桌面课表小组件",
-            "固定今日与未来七天的近期安排",
-            Ui.icon(a, R.drawable.ic_add, 24, Ui.muted(a)),
-            0,
-            1,
-            () -> {
-              AppWidgetManager manager = AppWidgetManager.getInstance(a);
-              if (manager.isRequestPinAppWidgetSupported())
-                manager.requestPinAppWidget(new ComponentName(a, AgendaWidget.class), null, null);
-              else a.toast("请长按桌面，在小组件中选择 YI课表");
-            }));
-    perm.add(
-        Ui.listItem(
-            a,
-            R.drawable.ic_privacy_tip,
-            "权限用途与隐私边界",
-            "最小权限原则，不扫描存储、通讯录或定位",
-            chevron(),
-            0,
-            1,
-            () -> showPermissionGuide(notifications, exact)));
-    addGroup(box, perm);
+            "当前课表："
+                + a.settings.get("title", "青大")
+                + " · "
+                + courseCount
+                + " 项课程",
+            13,
+            Ui.onPrimaryContainer(a));
+    summary.setAlpha(0.85f);
+    summary.setPadding(0, Ui.dp(a, 2), 0, 0);
+    brandText.addView(summary);
+    brandRow.addView(brandText, new LinearLayout.LayoutParams(0, -2, 1));
+    brandCard.addView(brandRow);
+    box.addView(brandCard, Ui.wrap(a, 0, 4));
 
-    // Semester & display.
-    section(box, "学期与显示");
+    section(box, "课表与时间");
     String themeLabel =
         a.settings.theme() == -1 ? "跟随系统" : a.settings.theme() == 2 ? "深色" : "浅色";
     List<View> display = new ArrayList<>();
     display.add(
         Ui.listItem(
             a,
+            R.drawable.ic_edit,
+            "课表名称",
+            "显示在课表页顶部的标题",
+            Ui.trailingValue(a, a.settings.get("title", "青大")),
+            0,
+            1,
+            a::renameTable));
+    display.add(
+        Ui.listItem(
+            a,
             R.drawable.ic_school,
             "学期首周",
-            "第 1 周星期一，用于推算全部循环周次",
+            "第 1 周星期一，用于推算循环周次",
             Ui.trailingValue(a, a.settings.term().toString()),
             0,
             1,
             this::term));
-    display.add(
-        Ui.listItem(
-            a,
-            R.drawable.ic_public,
-            "时区",
-            "课表钟点与午夜自动刷新使用的 IANA 时区",
-            Ui.trailingValue(a, a.settings.zone().getId()),
-            0,
-            1,
-            this::zone));
     display.add(
         Ui.listItem(
             a,
@@ -155,6 +122,16 @@ final class SettingsScreen {
             0,
             1,
             this::slots));
+    display.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_public,
+            "时区",
+            "课表钟点与午夜自动刷新使用的 IANA 时区",
+            Ui.trailingValue(a, a.settings.zone().getId()),
+            0,
+            1,
+            this::zone));
     display.add(
         Ui.listItem(
             a,
@@ -200,13 +177,56 @@ final class SettingsScreen {
     }
     addGroup(box, display);
 
-    // AI assistant.
+    section(box, "提醒与小组件");
+    List<View> perm = new ArrayList<>();
+    perm.add(
+        permissionItem(
+            R.drawable.ic_notifications,
+            "课程与日程通知",
+            notifications ? "按每项安排的提前量发送提醒" : "未开启 · 到点时无法弹出提醒",
+            notifications,
+            () -> requestNotificationPermission(notifications)));
+    if (Build.VERSION.SDK_INT >= 31)
+      perm.add(
+          permissionItem(
+              R.drawable.ic_alarm,
+              "精确时间唤醒",
+              exact ? "锁屏与省电模式下准点提醒" : "近似模式 · 授权后可准点唤醒",
+              exact,
+              this::requestExactAlarmPermission));
+    perm.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_widgets,
+            "桌面课表小组件",
+            "在桌面显示下一节课程、时间与教室",
+            Ui.icon(a, R.drawable.ic_add, 22, Ui.primary(a)),
+            0,
+            1,
+            () -> {
+              AppWidgetManager manager = AppWidgetManager.getInstance(a);
+              if (manager.isRequestPinAppWidgetSupported())
+                manager.requestPinAppWidget(new ComponentName(a, AgendaWidget.class), null, null);
+              else a.toast("请长按桌面，在小组件中选择 YI课表");
+            }));
+    perm.add(
+        Ui.listItem(
+            a,
+            R.drawable.ic_privacy_tip,
+            "权限与隐私说明",
+            "最小权限原则，不扫描存储、通讯录或定位",
+            chevron(),
+            0,
+            1,
+            () -> showPermissionGuide(notifications, exact)));
+    addGroup(box, perm);
+
     section(box, "AI 助手");
     List<View> ai = new ArrayList<>();
     ai.add(
         Ui.listItem(
             a,
-            R.drawable.ic_auto_awesome,
+            R.drawable.ic_book,
             "接口、模型与 API Key",
             "默认 DeepSeek 兼容接口",
             Ui.trailingValue(a, a.settings.get("model", "deepseek-chat")),
@@ -217,23 +237,22 @@ final class SettingsScreen {
         Ui.listItem(
             a,
             R.drawable.ic_key,
-            "数据与密钥",
-            "仅在发送请求时提交课程内容，原 PDF 不上传；Key 由 Android Keystore 加密且不进入备份",
+            "数据与密钥保护",
+            "仅在发送请求时提交课程内容，原 PDF 不上传；API Key 由 Android Keystore 加密存储",
             null,
             0,
             1,
             null));
     addGroup(box, ai);
 
-    // Data & backup.
     section(box, "数据与备份");
     List<View> data = new ArrayList<>();
     data.add(
         Ui.listItem(
             a,
             R.drawable.ic_upload_file,
-            "从 PDF 导入",
-            "本地识别教务课表，逐项核对后导入",
+            "从本地 PDF 导入",
+            "本地识别教务课表，核对后导入",
             chevron(),
             0,
             1,
@@ -242,8 +261,8 @@ final class SettingsScreen {
         Ui.listItem(
             a,
             R.drawable.ic_download,
-            "导出完整课表备份",
-            "JSON，包含学期、时区与作息，不含 API Key",
+            "导出 JSON 备份",
+            "包含课程、学期、时区与作息，不含 API Key",
             chevron(),
             0,
             1,
@@ -252,8 +271,8 @@ final class SettingsScreen {
         Ui.listItem(
             a,
             R.drawable.ic_restore,
-            "恢复备份",
-            "用备份替换当前课表",
+            "恢复 JSON 备份",
+            "用备份文件替换当前课表",
             chevron(),
             0,
             1,
@@ -265,35 +284,28 @@ final class SettingsScreen {
             a,
             R.drawable.ic_pdf,
             "阅读本地 PDF",
-            "在应用内查看原始课表页面",
+            "在应用内查看原始课表文件",
             chevron(),
             0,
             1,
             () -> a.pdfViewer.launch(new String[] {"application/pdf"})));
     addGroup(box, data);
 
-    TextView footer =
-        Ui.note(a, "版本 1.0.0 · Java / Material 3 Expressive\n图标沿用 YIClass；课程核心与构建独立重写。");
-    footer.setGravity(Gravity.CENTER_HORIZONTAL);
-    footer.setPadding(0, Ui.dp(a, 24), 0, Ui.dp(a, 12));
-    box.addView(footer);
-    return Ui.scroll(a, box);
+    outer.addView(Ui.scroll(a, box), new LinearLayout.LayoutParams(-1, 0, 1));
+    return outer;
   }
 
   private View chevron() {
-    return Ui.icon(a, R.drawable.ic_chevron_right, 24, Ui.muted(a));
+    return Ui.icon(a, R.drawable.ic_chevron_right, 22, Ui.muted(a));
   }
 
   private View permissionItem(
       int icon, String title, String supporting, boolean granted, Runnable action) {
     View trailing =
-        granted
-            ? Ui.statusBadge(a, "已开启", true)
-            : Ui.filledButton(a, "开启", action);
+        granted ? Ui.statusBadge(a, "已开启", true) : Ui.filledButton(a, "开启", action);
     return Ui.listItem(a, icon, title, supporting, trailing, 0, 1, action);
   }
 
-  /** Re-applies segmented shapes once the group size is known. */
   private void addGroup(LinearLayout box, List<View> items) {
     for (int i = 0; i < items.size(); i++) {
       View v = items.get(i);
@@ -337,15 +349,14 @@ final class SettingsScreen {
     box.addView(
         Ui.note(
             a,
-            "YI课表遵循最小权限原则，不申请存储空间扫描、通讯录或定位权限：\n\n"
-                + "• 通知权限（"
+            "• 通知权限（"
                 + (notifications ? "已开启" : "未开启")
                 + "）：用于课前与日程到点横幅提醒。\n"
                 + "• 精确提醒权限（"
                 + (exact ? "已开启" : "近似模式")
-                + "）：用于准点唤醒，未开启时回退系统节能近似提醒。\n"
-                + "• 开机广播恢复：重启或修改时区后自动重排下一次提醒，无常驻后台服务。\n"
-                + "• 本地文件访问：通过系统文件选择器单次读取你选中的 PDF 或备份文件。"));
+                + "）：用于锁屏与省电模式下准点唤醒。\n"
+                + "• 开机广播恢复：重启或修改时区后自动重排提醒。\n"
+                + "• 本地文件访问：通过系统文件选择器单次读取所选 PDF 或备份文件。"));
     new MaterialAlertDialogBuilder(a)
         .setIcon(R.drawable.ic_privacy_tip)
         .setTitle("权限与隐私说明")
@@ -359,7 +370,7 @@ final class SettingsScreen {
 
   private void section(LinearLayout box, String title) {
     TextView h = Ui.sectionHeader(a, title);
-    h.setPadding(Ui.dp(a, 8), Ui.dp(a, 22), 0, Ui.dp(a, 10));
+    h.setPadding(Ui.dp(a, 6), Ui.dp(a, 18), 0, Ui.dp(a, 8));
     box.addView(h);
   }
 
@@ -368,7 +379,7 @@ final class SettingsScreen {
     Ui.inset(box, 20);
     TextInputEditText field =
         Ui.field(box, "第1周周一 YYYY-MM-DD", a.settings.term().toString(), false);
-    box.addView(Ui.note(a, "修改后所有循环课程、提醒和组件会按新首周计算。"));
+    box.addView(Ui.note(a, "修改后所有循环课程、提醒和桌面小组件将按新首周计算。"));
     showForm(
         "学期首周",
         box,
@@ -398,7 +409,7 @@ final class SettingsScreen {
   void slots() {
     LinearLayout box = Ui.column(a);
     Ui.inset(box, 18);
-    box.addView(Ui.note(a, "作息用于周视图刻度与以后 PDF 的节次换算。已有课程保留各自钟点，如需更改请编辑课程。"));
+    box.addView(Ui.note(a, "作息用于周视图刻度与导入 PDF 时的节次换算。"));
     List<TextInputEditText> fields = new ArrayList<>();
     int[] starts = a.settings.starts(), ends = a.settings.ends();
     for (int i = 0; i < 10; i++)
@@ -441,7 +452,7 @@ final class SettingsScreen {
         new com.google.android.material.checkbox.MaterialCheckBox(a);
     clear.setText("删除本机已保存的 Key");
     box.addView(clear);
-    box.addView(Ui.note(a, "填基础地址，不要附加 /chat/completions。第三方接口请自行核对可信性。"));
+    box.addView(Ui.note(a, "填写基础地址，无需附加 /chat/completions。"));
     showForm(
         "AI服务配置",
         box,

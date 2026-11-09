@@ -19,7 +19,6 @@ public final class Settings {
     prefs.edit().putString(key, value).apply();
   }
 
-  // No assumption that a particular user's sample is the user's active semester.
   public LocalDate term() {
     return LocalDate.parse(
         get("term", LocalDate.now().with(java.time.DayOfWeek.MONDAY).toString()));
@@ -33,7 +32,6 @@ public final class Settings {
     return Integer.parseInt(get("theme", "-1"));
   }
 
-  /** Material You wallpaper colors (Android 12+); off by default to keep the brand scheme. */
   public boolean dynamicColor() {
     return "1".equals(get("dynamic_color", "0"));
   }

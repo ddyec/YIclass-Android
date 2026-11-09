@@ -4,7 +4,6 @@ import java.text.Normalizer;
 import java.util.*;
 import java.util.regex.*;
 
-/** Coordinate-based text-table parser. PDF libraries stay outside the domain module. */
 public final class PdfTableParser {
   public record Glyph(int page, float x, float y, String text) {}
 
@@ -21,8 +20,10 @@ public final class PdfTableParser {
           .add(new Glyph(g.page(), g.x(), g.y(), normalize(g.text())));
     List<Item> items = new ArrayList<>();
     List<String> warnings = new ArrayList<>();
+    Map<String, Integer> colorByTitle = new LinkedHashMap<>();
     float[] centers = null;
     float headerY = -1;
+    boolean hasAppendix = false;
     for (var entry : pages.entrySet()) {
       List<List<Glyph>> lines = lines(entry.getValue());
       StringBuilder appendix = new StringBuilder();
@@ -34,6 +35,7 @@ public final class PdfTableParser {
         if (inAppendix) appendix.append(text).append('\n');
       }
       if (appendix.length() > 0) {
+        hasAppendix = true;
         warnings.add("以下原文信息没有固定节次，请核对后手动补充，未自动安排时间：\n" + appendix);
       }
       for (List<Glyph> line : lines) {
@@ -71,19 +73,22 @@ public final class PdfTableParser {
         List<List<Glyph>> columnLines = lines(col);
         StringBuilder text = new StringBuilder();
         for (var line : columnLines) text.append(join(line).trim()).append('\n');
-        parseColumn(text.toString(), day, items, warnings);
+        parseColumn(text.toString(), day, items, warnings, colorByTitle);
       }
     }
     if (items.isEmpty()) throw new IllegalArgumentException("PDF 中没有可识别的定时课程，请检查格式或手动录入。");
-    // The appendix has no weekday/time. Preserve it as a review warning rather than inventing a
-    // time.
-    if (glyphs.stream().anyMatch(g -> g.text().contains("其")))
+    if (!hasAppendix && glyphs.stream().anyMatch(g -> g.text().contains("其")))
       warnings.add("PDF 中的其他课程/网课没有固定节次，请核对原 PDF 并在日程中补充。");
     warnings.add("PDF 不包含每节课的钟点：当前使用08:30起的默认作息，请在设置核对。学期首周日期也需确认。");
     return new Result(items, warnings);
   }
 
-  private static void parseColumn(String text, int day, List<Item> out, List<String> warnings) {
+  private static void parseColumn(
+      String text,
+      int day,
+      List<Item> out,
+      List<String> warnings,
+      Map<String, Integer> colorByTitle) {
     Matcher m = SLOT.matcher(text);
     int lastEnd = 0;
     List<int[]> positions = new ArrayList<>();
@@ -122,7 +127,7 @@ public final class PdfTableParser {
       Matcher total = Pattern.compile("课程总学时:\\d+(?:\\.\\d+)?").matcher(metadata);
       String original = total.find() ? metadata.substring(0, total.end()) : metadata;
       c.notes = "由本地 PDF 导入\n第" + a + "–" + b + "节 · " + c.weeks + "\n" + original;
-      c.color = Math.floorMod(c.title.hashCode(), 6);
+      c.color = colorByTitle.computeIfAbsent(c.title, k -> colorByTitle.size() % 6);
       c.validate();
       if (out.stream().noneMatch(x -> x.fingerprint().equals(c.fingerprint()))) out.add(c);
       lastEnd = end;

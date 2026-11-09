@@ -3,7 +3,6 @@ package com.ddyec.yiclass.core;
 import java.time.LocalDate;
 import java.util.*;
 
-/** A recurring course or a dated event. Minutes are local wall-clock minutes. */
 public final class Item {
   public String id = UUID.randomUUID().toString();
   public String title = "", location = "", teacher = "", notes = "";

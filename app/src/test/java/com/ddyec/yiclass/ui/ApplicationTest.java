@@ -41,6 +41,38 @@ public class ApplicationTest {
     return i;
   }
 
+  private List<Item> sampleSchedule() {
+    List<Item> list = new ArrayList<>();
+    Object[][] rows = {
+      {"普通化学II", 1, "4-17周", 510, 610, "致明楼_507", "包新颜", 0},
+      {"大学英语(一)", 2, "4-17周", 510, 610, "致明楼_501", "刘丽丽", 1},
+      {"普通化学实验", 2, "5-12周", 650, 750, "化工学院楼(盐湖大楼)普通化学实验室", "包新颜", 3},
+      {"高等数学", 2, "4-17周", 840, 940, "菌格楼_2号多媒体教室", "赵文才", 4},
+      {"生物学基础II", 3, "4-17周", 510, 610, "启真楼_503", "刘同军", 5},
+      {"人工智能通识", 3, "4-15周", 650, 750, "致明楼_微机室一", "陈磊", 0},
+      {"大学体育(篮球1)", 3, "4-15周", 840, 940, "未排地点", "杜震", 1},
+      {"习近平新时代中国特色社会主义思想概论", 3, "10-13周", 1140, 1240, "未排地点", "李华", 3},
+      {"大学英语(一)", 4, "4-17周", 650, 750, "致明楼_501", "刘丽丽", 1},
+      {"大学语文", 4, "4-17周", 840, 940, "启真楼_203", "张敏", 2},
+      {"习近平新时代中国特色社会主义思想概论", 4, "4-17周", 960, 1060, "菌格楼_3号多媒体教室", "李华", 3},
+      {"高等数学", 5, "4-17周", 510, 610, "菌格楼_2号多媒体教室", "赵文才", 4},
+      {"习近平新时代中国特色社会主义思想概论", 5, "4-17周", 840, 940, "菌格楼_2号多媒体教室", "李华", 3},
+    };
+    for (Object[] r : rows) {
+      Item i = new Item();
+      i.title = (String) r[0];
+      i.day = (int) r[1];
+      i.weeks = (String) r[2];
+      i.start = (int) r[3];
+      i.end = (int) r[4];
+      i.location = (String) r[5];
+      i.teacher = (String) r[6];
+      i.color = (int) r[7];
+      list.add(i);
+    }
+    return list;
+  }
+
   @Test
   public void databasePersistsAndRejectsStaleWrites() {
     try (Store db = new Store(context)) {
@@ -75,37 +107,22 @@ public class ApplicationTest {
   public void weekDayListAgendaSettingsAndEditorsRender() throws Exception {
     Settings settings = new Settings(context);
     settings.put("term", "2026-08-31");
+    List<Item> items = sampleSchedule();
+    Item event = course();
+    event.id = UUID.randomUUID().toString();
+    event.type = "EVENT";
+    event.title = "复习与整理本周笔记";
+    event.date = "2026-11-09";
+    event.start = 1080;
+    event.end = 1140;
+    items.add(event);
     try (Store db = new Store(context)) {
-      List<Item> items = new ArrayList<>();
-      String[] names = {
-        "普通化学Ⅱ", "大学英语（一）", "生物学基础Ⅱ", "人工智能通识", "高等数学", "大学语文", "习近平新时代中国特色社会主义思想概论"
-      };
-      for (int d = 1; d <= 5; d++) {
-        Item i = course();
-        i.id = UUID.randomUUID().toString();
-        i.title = names[d - 1];
-        i.day = d;
-        i.start = 510;
-        i.end = 610;
-        i.location = "致明楼 · 501";
-        i.color = d;
-        items.add(i);
-      }
-      items.add(course());
-      Item event = course();
-      event.id = UUID.randomUUID().toString();
-      event.type = "EVENT";
-      event.title = "复习与整理本周笔记";
-      event.date = "2026-11-04";
-      event.start = 1080;
-      event.end = 1140;
-      items.add(event);
       db.replace(0, items);
     }
     var controller = Robolectric.buildActivity(MainActivity.class).setup();
     MainActivity a = controller.get();
-    a.selected = LocalDate.of(2026, 11, 4);
-    a.monday = LocalDate.of(2026, 11, 2);
+    a.selected = LocalDate.of(2026, 11, 9);
+    a.monday = LocalDate.of(2026, 11, 9);
     a.render();
     capture(a, "week-light");
     a.mode = 1;
@@ -123,7 +140,7 @@ public class ApplicationTest {
     new Editors(a).edit(null, null, false);
     org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
     assertNotNull(a.root);
-    assertEquals(7, a.snapshot.items().size());
+    assertEquals(items.size(), a.snapshot.items().size());
     controller.pause().stop().destroy();
   }
 
@@ -147,8 +164,8 @@ public class ApplicationTest {
     }
     var controller = Robolectric.buildActivity(MainActivity.class).setup();
     MainActivity a = controller.get();
-    a.selected = LocalDate.of(2026, 11, 4);
-    a.monday = LocalDate.of(2026, 11, 2);
+    a.selected = LocalDate.of(2026, 11, 9);
+    a.monday = LocalDate.of(2026, 11, 9);
     a.render();
     capture(a, "real-pdf-week");
     a.mode = 1;
@@ -158,16 +175,18 @@ public class ApplicationTest {
   }
 
   @Test
-  public void remindersDeliverOnlyOnceAndWidgetUsesSameSchedule() {
+  public void remindersDeliverOnlyOnceAndWidgetUsesSameSchedule() throws Exception {
     Settings settings = new Settings(context);
     settings.put("term", LocalDate.now(settings.zone()).with(DayOfWeek.MONDAY).toString());
     LocalDateTime start =
         LocalDateTime.now(settings.zone()).plusMinutes(14).withSecond(0).withNano(0);
     Item event = course();
     event.type = "EVENT";
+    event.title = "普通化学II";
+    event.location = "致明楼_507";
     event.date = start.toLocalDate().toString();
     event.start = start.getHour() * 60 + start.getMinute();
-    event.end = Math.min(1440, event.start + 30);
+    event.end = Math.min(1440, event.start + 100);
     event.reminder = 15;
     try (Store db = new Store(context)) {
       db.replace(0, List.of(event));
@@ -194,9 +213,27 @@ public class ApplicationTest {
     int id =
         widgets.createWidget(
             com.ddyec.yiclass.widget.AgendaWidget.class, com.ddyec.yiclass.R.layout.agenda_widget);
+    try (Store db = new Store(context)) {
+      settings.put("term", "2026-08-31");
+      db.replace(db.snapshot().revision(), sampleSchedule());
+    }
+    com.ddyec.yiclass.widget.AgendaWidget.updateAt(
+        context,
+        android.appwidget.AppWidgetManager.getInstance(context),
+        new int[] {id},
+        ZonedDateTime.of(2026, 11, 9, 8, 9, 0, 0, settings.zone()));
+    View widgetView = widgets.getViewFor(id);
+    android.widget.TextView meta = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_title);
     android.widget.TextView content =
-        widgets.getViewFor(id).findViewById(com.ddyec.yiclass.R.id.widget_content);
-    assertTrue(content.getText().toString().contains(event.title));
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_content);
+    android.widget.TextView time = widgetView.findViewById(com.ddyec.yiclass.R.id.widget_time);
+    android.widget.TextView location =
+        widgetView.findViewById(com.ddyec.yiclass.R.id.widget_location);
+    assertEquals("下一节", meta.getText().toString());
+    assertEquals("普通化学II", content.getText().toString());
+    assertEquals("08:30–10:10", time.getText().toString());
+    assertEquals("致明楼_507", location.getText().toString());
+    captureView(widgetView, 200, 200, "widget-light");
   }
 
   @Test
@@ -204,12 +241,12 @@ public class ApplicationTest {
   public void darkThemeAndAssistantRender() throws Exception {
     new Settings(context).put("term", "2026-08-31");
     try (Store db = new Store(context)) {
-      db.replace(0, List.of(course()));
+      db.replace(0, sampleSchedule());
     }
     var controller = Robolectric.buildActivity(MainActivity.class).setup();
     MainActivity a = controller.get();
-    a.selected = LocalDate.of(2026, 11, 4);
-    a.monday = LocalDate.of(2026, 11, 2);
+    a.selected = LocalDate.of(2026, 11, 9);
+    a.monday = LocalDate.of(2026, 11, 9);
     a.render();
     capture(a, "week-dark");
     new AssistantSheet(a).show();
@@ -223,6 +260,22 @@ public class ApplicationTest {
       for (int i = 0; i < group.getChildCount(); i++) invalidateTree(group.getChildAt(i));
   }
 
+  private void captureView(View view, int w, int h, String name) throws Exception {
+    view.measure(
+        View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
+    view.layout(0, 0, w, h);
+    invalidateTree(view);
+    Bitmap image = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+    view.draw(new Canvas(image));
+    File output = new File("build/screenshots/" + name + ".png");
+    output.getParentFile().mkdirs();
+    try (OutputStream stream = new FileOutputStream(output)) {
+      assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, stream));
+    }
+    image.recycle();
+  }
+
   private void capture(MainActivity a, String name) throws Exception {
     View root = a.getWindow().getDecorView();
     root.measure(
@@ -234,24 +287,9 @@ public class ApplicationTest {
         View.MeasureSpec.makeMeasureSpec(412, View.MeasureSpec.EXACTLY),
         View.MeasureSpec.makeMeasureSpec(915, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, 412, 915);
-    System.out.println(
-        name
-            + " decor="
-            + root.getWidth()
-            + "x"
-            + root.getHeight()
-            + " app="
-            + a.root.getWidth()
-            + "x"
-            + a.root.getHeight()
-            + " body="
-            + a.body.getHeight()
-            + " bottom="
-            + a.root.getChildAt(2).getTop()
-            + ":"
-            + a.root.getChildAt(2).getBottom());
     assertTrue(
-        "Navigation extends beyond root", a.root.getChildAt(2).getBottom() <= a.root.getHeight());
+        "Navigation extends beyond root",
+        a.root.getChildAt(a.root.getChildCount() - 1).getBottom() <= a.root.getHeight());
     invalidateTree(root);
     Bitmap image = Bitmap.createBitmap(412, 915, Bitmap.Config.ARGB_8888);
     root.draw(new Canvas(image));

@@ -10,7 +10,6 @@ import java.util.*;
 
 public final class PdfImporter {
   public PdfTableParser.Result read(Context context, Uri uri) throws IOException {
-    // SAF input is bounded before decoding; no broad storage permission or upload.
     byte[] data;
     try (InputStream in = context.getContentResolver().openInputStream(uri)) {
       if (in == null) throw new IOException("无法打开文件");

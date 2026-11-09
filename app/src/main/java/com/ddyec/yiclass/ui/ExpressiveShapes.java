@@ -8,10 +8,6 @@ import androidx.graphics.shapes.RoundedPolygon;
 import androidx.graphics.shapes.ShapesKt;
 import androidx.graphics.shapes.Shapes_androidKt;
 
-/**
- * Material 3 Expressive shape set (circle, cookies, sunny, burst, clover) built on the public
- * androidx.graphics.shapes API, normalized to a unit square so they scale to any view size.
- */
 final class ExpressiveShapes {
   private ExpressiveShapes() {}
 

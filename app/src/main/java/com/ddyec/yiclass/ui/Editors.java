@@ -9,9 +9,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
-import com.google.android.material.textfield.TextInputEditText;
 import java.time.*;
 import java.util.*;
 
@@ -38,45 +38,28 @@ final class Editors {
     LinearLayout box = Ui.column(a);
     box.setPadding(Ui.dp(a, 24), 0, Ui.dp(a, 24), Ui.dp(a, 24));
     box.addView(Ui.sheetHandle(a));
-    LinearLayout header = Ui.row(a);
-    header.addView(
-        Ui.shapeIcon(
-            a,
-            event ? ExpressiveShapes.COOKIE_6 : ExpressiveShapes.CLOVER_4,
-            event ? R.drawable.ic_event : R.drawable.ic_school,
-            event ? Ui.tertiaryContainer(a) : Ui.primaryContainer(a),
-            event ? Ui.onTertiaryContainer(a) : Ui.onPrimaryContainer(a),
-            52,
-            26));
-    LinearLayout headText = Ui.column(a);
-    headText.setPadding(Ui.dp(a, 14), 0, 0, 0);
+
     TextView headTitle =
         Ui.heading(
             a,
             original == null ? (event ? "新建日程" : "添加课程") : occurrence == null ? "编辑安排" : "编辑本次课程");
-    headTitle.setPadding(0, 0, 0, 0);
-    headText.addView(headTitle);
-    headText.addView(Ui.label(a, event ? "日程与待办" : "课程安排", Ui.primary(a)));
-    header.addView(headText, new LinearLayout.LayoutParams(0, -2, 1));
-    box.addView(header, Ui.wrap(a, 0, 12));
+    box.addView(headTitle, Ui.wrap(a, 0, 8));
     if (occurrence != null && original != null)
       box.addView(Ui.note(a, "仅修改 " + occurrence + "，其他周次不受影响。"));
 
-    // Type: connected button group instead of a spinner.
     int[] typeIndex = {"EVENT".equals(draft.type) ? 1 : 0};
     View[] courseOnly = new View[2];
-    MaterialButtonToggleGroup type =
-        Ui.connectedGroup(
+    LinearLayout type =
+        Ui.segmentedControl(
             a,
-            new String[] {"课程", "日程与待办"},
-            new int[] {R.drawable.ic_school, R.drawable.ic_event},
+            new String[] {"课程", "日程"},
             typeIndex[0],
-            0,
             n -> {
               typeIndex[0] = n;
-              for (View v : courseOnly) if (v != null) v.setVisibility(n == 0 ? View.VISIBLE : View.GONE);
+              for (View v : courseOnly)
+                if (v != null) v.setVisibility(n == 0 ? View.VISIBLE : View.GONE);
             });
-    LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 48));
+    LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(-1, Ui.dp(a, 38));
     typeLp.bottomMargin = Ui.dp(a, 14);
     box.addView(type, typeLp);
 
@@ -91,7 +74,6 @@ final class Editors {
             | android.text.InputType.TYPE_DATETIME_VARIATION_DATE);
     Ui.endAction(date, R.drawable.ic_event, "选择日期", () -> pickDate(date));
 
-    // Weekday: connected group (course only).
     LinearLayout dayBlock = Ui.column(a);
     dayBlock.addView(Ui.label(a, "上课星期", Ui.muted(a)), Ui.wrap(a, 0, 6));
     int[] dayIndex = {Math.max(0, Math.min(6, draft.day - 1))};
@@ -103,12 +85,13 @@ final class Editors {
             dayIndex[0],
             0,
             n -> dayIndex[0] = n);
-    dayBlock.addView(day, new LinearLayout.LayoutParams(-1, Ui.dp(a, 48)));
+    dayBlock.addView(day, new LinearLayout.LayoutParams(-1, Ui.dp(a, 44)));
     box.addView(dayBlock, Ui.wrap(a, 0, 12));
     TextInputEditText weeks = Ui.field(box, "循环周次，例如 1-16 或 1-15(单)", draft.weeks, false);
     courseOnly[0] = dayBlock;
     courseOnly[1] = Ui.layoutOf(weeks);
-    if (typeIndex[0] == 1) for (View v : courseOnly) if (v != null) v.setVisibility(View.GONE);
+    if (typeIndex[0] == 1)
+      for (View v : courseOnly) if (v != null) v.setVisibility(View.GONE);
 
     LinearLayout times = Ui.row(a);
     times.setGravity(Gravity.TOP);
@@ -130,7 +113,6 @@ final class Editors {
         android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
     Ui.startIcon(reminder, R.drawable.ic_notifications);
 
-    // Color: Expressive swatches with shape morph on selection.
     box.addView(Ui.label(a, "颜色", Ui.muted(a)), Ui.wrap(a, 0, 8));
     int[] colorIndex = {Math.floorMod(draft.color, 6)};
     String[] colorNames = {"玫瑰", "鸢尾", "薄荷", "杏黄", "浅紫", "雾蓝"};
@@ -141,9 +123,6 @@ final class Editors {
           for (int i = 0; i < swatchViews.size(); i++) {
             boolean on = i == colorIndex[0];
             FrameLayout f = swatchViews.get(i);
-            f.setBackground(
-                Ui.expressiveShape(
-                    on ? ExpressiveShapes.COOKIE_9 : ExpressiveShapes.CIRCLE, Ui.courseAccent(a, i)));
             f.getChildAt(0).setVisibility(on ? View.VISIBLE : View.INVISIBLE);
             f.setSelected(on);
           }
@@ -157,8 +136,8 @@ final class Editors {
               R.drawable.ic_check,
               Ui.courseAccent(a, i),
               Ui.courseColor(a, i),
-              40,
-              22);
+              38,
+              20);
       f.setContentDescription(colorNames[i]);
       f.setClickable(true);
       f.setOnClickListener(
@@ -167,17 +146,17 @@ final class Editors {
             paintSwatches.run();
           });
       swatchViews.add(f);
-      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Ui.dp(a, 40), Ui.dp(a, 40));
+      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Ui.dp(a, 38), Ui.dp(a, 38));
       sp.rightMargin = Ui.dp(a, 12);
       swatches.addView(f, sp);
     }
     paintSwatches.run();
-    box.addView(swatches, Ui.wrap(a, 0, 16));
+    box.addView(swatches, Ui.wrap(a, 0, 14));
     TextInputEditText notes = Ui.field(box, "备注", draft.notes, true);
     MaterialButton saveBtn =
         Ui.heroButton(
             a,
-            "保存安排",
+            "保存",
             () -> {
               try {
                 draft.title = Ui.value(title);
@@ -275,7 +254,8 @@ final class Editors {
             .build();
     picker.addOnPositiveButtonClickListener(
         millis ->
-            field.setText(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()));
+            field.setText(
+                Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()));
     picker.show(a.getSupportFragmentManager(), "date");
   }
 }

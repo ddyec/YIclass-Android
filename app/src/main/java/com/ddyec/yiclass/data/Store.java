@@ -7,7 +7,6 @@ import com.ddyec.yiclass.core.*;
 import com.google.gson.*;
 import java.util.*;
 
-/** All writers use a revision check and one transaction, including imports and AI plans. */
 public final class Store extends SQLiteOpenHelper {
   public static final Gson JSON = new Gson();
 

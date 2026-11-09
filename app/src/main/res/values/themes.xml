@@ -1,19 +1,11 @@
 <resources>
-    <!--
-        Material 3 Expressive base theme.
-        Colors are a full M3 tonal scheme generated from the YIClass brand seed #3657CE
-        (primary T40 / container T90 / on-container T30, matching the Expressive token mapping).
-        Users on Android 12+ can opt into wallpaper-based dynamic color in Settings.
-    -->
     <style name="Base.Theme.YIClass" parent="Theme.Material3Expressive.DayNight.NoActionBar">
-        <!-- Expressive shape scale -->
         <item name="shapeAppearanceCornerExtraSmall">@style/ShapeAppearance.YIClass.ExtraSmall</item>
         <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.YIClass.Small</item>
         <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.YIClass.Medium</item>
         <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.YIClass.Large</item>
         <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.YIClass.ExtraLarge</item>
 
-        <!-- Expressive component defaults used by programmatic views -->
         <item name="yiButtonFilledMedium">@style/Widget.YIClass.Button.Filled.Medium</item>
         <item name="yiButtonTonalMedium">@style/Widget.YIClass.Button.Tonal.Medium</item>
         <item name="yiIconButtonTonalMedium">@style/Widget.YIClass.IconButton.Tonal.Medium</item>
@@ -27,52 +19,52 @@
     </style>
 
     <style name="Theme.YIClass" parent="Base.Theme.YIClass">
-        <item name="colorPrimary">#3254CB</item>
+        <item name="colorPrimary">#1A66E8</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#DDE1FF</item>
-        <item name="colorOnPrimaryContainer">#0D39B2</item>
-        <item name="colorSecondary">#585D78</item>
+        <item name="colorPrimaryContainer">#DCE6FF</item>
+        <item name="colorOnPrimaryContainer">#08358A</item>
+        <item name="colorSecondary">#525B76</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">#DDE1FF</item>
-        <item name="colorOnSecondaryContainer">#40455F</item>
-        <item name="colorTertiary">#7D4F75</item>
+        <item name="colorSecondaryContainer">#E2E7F8</item>
+        <item name="colorOnSecondaryContainer">#343C54</item>
+        <item name="colorTertiary">#6D5078</item>
         <item name="colorOnTertiary">#FFFFFF</item>
-        <item name="colorTertiaryContainer">#FFD7F4</item>
-        <item name="colorOnTertiaryContainer">#63385C</item>
+        <item name="colorTertiaryContainer">#F4DCFF</item>
+        <item name="colorOnTertiaryContainer">#52375D</item>
         <item name="colorError">#BA1A1A</item>
         <item name="colorOnError">#FFFFFF</item>
         <item name="colorErrorContainer">#FFDAD6</item>
         <item name="colorOnErrorContainer">#93000A</item>
-        <item name="colorSurface">#FBF8FF</item>
+        <item name="colorSurface">#F6F7FB</item>
         <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#F4F2FA</item>
-        <item name="colorSurfaceContainer">#EFEDF4</item>
-        <item name="colorSurfaceContainerHigh">#E9E7EF</item>
-        <item name="colorSurfaceContainerHighest">#E3E1E9</item>
-        <item name="colorSurfaceDim">#DBD9E0</item>
-        <item name="colorSurfaceBright">#FBF8FF</item>
-        <item name="colorOnSurface">#1A1B21</item>
-        <item name="colorSurfaceInverse">#2F3036</item>
-        <item name="colorOnSurfaceInverse">#F2F0F7</item>
-        <item name="colorSurfaceVariant">#E1E1EF</item>
-        <item name="colorOnSurfaceVariant">#454651</item>
-        <item name="colorOutline">#757682</item>
-        <item name="colorOutlineVariant">#C5C5D3</item>
-        <item name="colorPrimaryInverse">#B8C4FF</item>
-        <item name="android:colorBackground">#FBF8FF</item>
-        <item name="colorOnBackground">#1A1B21</item>
-        <item name="colorPrimaryFixed">#DDE1FF</item>
-        <item name="colorPrimaryFixedDim">#B8C4FF</item>
-        <item name="colorOnPrimaryFixed">#001453</item>
-        <item name="colorOnPrimaryFixedVariant">#0D39B2</item>
-        <item name="colorSecondaryFixed">#DDE1FF</item>
-        <item name="colorSecondaryFixedDim">#C0C5E4</item>
-        <item name="colorOnSecondaryFixed">#151A31</item>
-        <item name="colorOnSecondaryFixedVariant">#40455F</item>
-        <item name="colorTertiaryFixed">#FFD7F4</item>
-        <item name="colorTertiaryFixedDim">#EDB5E1</item>
-        <item name="colorOnTertiaryFixed">#310C2E</item>
-        <item name="colorOnTertiaryFixedVariant">#63385C</item>
+        <item name="colorSurfaceContainerLow">#F0F2F8</item>
+        <item name="colorSurfaceContainer">#E8EBF3</item>
+        <item name="colorSurfaceContainerHigh">#E1E4EE</item>
+        <item name="colorSurfaceContainerHighest">#D9DDE8</item>
+        <item name="colorSurfaceDim">#D7DAE4</item>
+        <item name="colorSurfaceBright">#F6F7FB</item>
+        <item name="colorOnSurface">#14161F</item>
+        <item name="colorSurfaceInverse">#2B2E38</item>
+        <item name="colorOnSurfaceInverse">#F1F2F8</item>
+        <item name="colorSurfaceVariant">#DFE2EE</item>
+        <item name="colorOnSurfaceVariant">#636775</item>
+        <item name="colorOutline">#7A7E8C</item>
+        <item name="colorOutlineVariant">#D5D8E4</item>
+        <item name="colorPrimaryInverse">#9EC2FF</item>
+        <item name="android:colorBackground">#F6F7FB</item>
+        <item name="colorOnBackground">#14161F</item>
+        <item name="colorPrimaryFixed">#DCE6FF</item>
+        <item name="colorPrimaryFixedDim">#9EC2FF</item>
+        <item name="colorOnPrimaryFixed">#001849</item>
+        <item name="colorOnPrimaryFixedVariant">#08358A</item>
+        <item name="colorSecondaryFixed">#E2E7F8</item>
+        <item name="colorSecondaryFixedDim">#BEC6DC</item>
+        <item name="colorOnSecondaryFixed">#141B2E</item>
+        <item name="colorOnSecondaryFixedVariant">#343C54</item>
+        <item name="colorTertiaryFixed">#F4DCFF</item>
+        <item name="colorTertiaryFixedDim">#D9B8E6</item>
+        <item name="colorOnTertiaryFixed">#271131</item>
+        <item name="colorOnTertiaryFixedVariant">#52375D</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 

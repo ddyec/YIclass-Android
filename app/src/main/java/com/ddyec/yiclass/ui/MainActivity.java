@@ -2,7 +2,6 @@ package com.ddyec.yiclass.ui;
 
 import android.Manifest;
 import android.app.AlarmManager;
-import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Paint;
 import android.os.Build;
@@ -21,14 +20,13 @@ import com.ddyec.yiclass.R;
 import com.ddyec.yiclass.core.*;
 import com.ddyec.yiclass.data.*;
 import com.ddyec.yiclass.reminder.Reminders;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.*;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.transition.MaterialFadeThrough;
 import java.time.*;
 import java.util.*;
@@ -46,7 +44,8 @@ public class MainActivity extends AppCompatActivity {
   int page = 0, mode = 0;
   private int renderedPage = -1, renderedMode = -1;
   LocalDate selected, monday;
-  boolean evening = false;
+  Boolean evening = null;
+
   final ActivityResultLauncher<String[]> pdfPicker =
       registerForActivityResult(
           new ActivityResultContracts.OpenDocument(),
@@ -74,9 +73,7 @@ public class MainActivity extends AppCompatActivity {
   final ActivityResultLauncher<String> notificationPermission =
       registerForActivityResult(
           new ActivityResultContracts.RequestPermission(),
-          granted -> {
-            refresh();
-          });
+          granted -> refresh());
 
   @Override
   public void onCreate(Bundle state) {
@@ -94,11 +91,12 @@ public class MainActivity extends AppCompatActivity {
       selected = LocalDate.parse(state.getString("selected", selected.toString()));
       mode = state.getInt("mode");
       page = state.getInt("page");
-      evening = state.getBoolean("evening");
+      if (state.containsKey("evening")) evening = state.getBoolean("evening");
     }
     monday =
         state != null
-            ? LocalDate.parse(state.getString("monday", selected.with(DayOfWeek.MONDAY).toString()))
+            ? LocalDate.parse(
+                state.getString("monday", selected.with(DayOfWeek.MONDAY).toString()))
             : selected.with(DayOfWeek.MONDAY);
     buildShell();
     refresh();
@@ -117,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
     out.putString("monday", monday.toString());
     out.putInt("mode", mode);
     out.putInt("page", page);
-    out.putBoolean("evening", evening);
+    if (evening != null) out.putBoolean("evening", evening);
   }
 
   @Override
@@ -135,49 +133,10 @@ public class MainActivity extends AppCompatActivity {
         (view, insets) -> {
           var bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
           var ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-          // The navigation bar draws behind the gesture area and pads itself (edge-to-edge).
           view.setPadding(bars.left, bars.top, bars.right, ime.bottom);
           return insets;
         });
 
-    // Top app bar – Expressive small app bar with emphasized title.
-    MaterialToolbar toolbar = new MaterialToolbar(this);
-    toolbar.setTitle("YI课表");
-    toolbar.setSubtitle("把时间，留给重要的事");
-    android.graphics.drawable.Drawable logo =
-        androidx.core.content.ContextCompat.getDrawable(this, R.drawable.brand_logo);
-    if (logo != null) {
-      android.graphics.Bitmap bitmap =
-          ((android.graphics.drawable.BitmapDrawable) logo).getBitmap();
-      android.graphics.drawable.BitmapDrawable sized =
-          new android.graphics.drawable.BitmapDrawable(
-              getResources(),
-              android.graphics.Bitmap.createScaledBitmap(
-                  bitmap, Ui.dp(this, 32), Ui.dp(this, 32), true));
-      sized.setTargetDensity(getResources().getDisplayMetrics());
-      toolbar.setLogo(sized);
-    }
-    toolbar.setTitleTextColor(Ui.ink(this));
-    toolbar.setSubtitleTextColor(Ui.muted(this));
-    toolbar
-        .getMenu()
-        .add(0, 1, 0, "导入与备份")
-        .setIcon(R.drawable.ic_upload_file)
-        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-    toolbar
-        .getMenu()
-        .add(0, 2, 1, "新增")
-        .setIcon(R.drawable.ic_add)
-        .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-    toolbar.setOnMenuItemClickListener(
-        item -> {
-          if (item.getItemId() == 1) importMenu();
-          else new Editors(this).edit(null, null, false);
-          return true;
-        });
-    root.addView(toolbar);
-
-    // Content stage: page body + the Expressive FAB that opens the AI assistant.
     FrameLayout stage = new FrameLayout(this);
     body = new FrameLayout(this);
     stage.addView(body, new FrameLayout.LayoutParams(-1, -1));
@@ -192,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
     stage.addView(assistantFab, fabLp);
     root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1));
 
-    // Expressive (flexible) navigation bar with filled/outlined icon states.
     nav = new BottomNavigationView(this);
     nav.getMenu().add(0, 10, 0, "课表").setIcon(R.drawable.ic_nav_schedule_selector);
     nav.getMenu().add(0, 11, 1, "日程").setIcon(R.drawable.ic_nav_agenda_selector);
@@ -212,14 +170,13 @@ public class MainActivity extends AppCompatActivity {
 
   void importMenu() {
     new MaterialAlertDialogBuilder(this)
-        .setIcon(R.drawable.ic_upload_file)
-        .setTitle("导入与备份")
+        .setTitle("课表与数据")
         .setItems(
-            new String[] {"从本地 PDF 导入课表", "手动添加课程", "恢复 JSON 备份", "导出 JSON 备份", "阅读本地 PDF"},
+            new String[] {"从本地 PDF 导入课表", "修改课表名称", "恢复 JSON 备份", "导出 JSON 备份", "阅读本地 PDF"},
             (d, n) -> {
               switch (n) {
                 case 0 -> pdfPicker.launch(new String[] {"application/pdf"});
-                case 1 -> new Editors(this).edit(null, null, false);
+                case 1 -> renameTable();
                 case 2 ->
                     backupPicker.launch(
                         new String[] {
@@ -227,6 +184,27 @@ public class MainActivity extends AppCompatActivity {
                         });
                 case 3 -> backupWriter.launch("YI课表-" + LocalDate.now() + ".json");
                 case 4 -> pdfViewer.launch(new String[] {"application/pdf"});
+              }
+            })
+        .show();
+  }
+
+  void renameTable() {
+    LinearLayout box = Ui.column(this);
+    Ui.inset(box, 20);
+    TextInputEditText field =
+        Ui.field(box, "课表名称", settings.get("title", "青大"), false);
+    new MaterialAlertDialogBuilder(this)
+        .setTitle("课表名称")
+        .setView(box)
+        .setNegativeButton("取消", null)
+        .setPositiveButton(
+            "保存",
+            (d, w) -> {
+              String v = Ui.value(field);
+              if (!v.isEmpty()) {
+                settings.put("title", v);
+                render();
               }
             })
         .show();
@@ -281,7 +259,6 @@ public class MainActivity extends AppCompatActivity {
         .show();
   }
 
-  /** Snackbar feedback anchored above the FAB / navigation bar. */
   void toast(String s) {
     if (root == null || isFinishing() || isDestroyed()) return;
     Snackbar bar = Snackbar.make(root, s, Snackbar.LENGTH_LONG);
@@ -314,82 +291,140 @@ public class MainActivity extends AppCompatActivity {
         .show();
   }
 
-  // ---- Schedule page -----------------------------------------------------------------------
-
   void schedule() {
     LinearLayout content = Ui.column(this);
     body.addView(content, new FrameLayout.LayoutParams(-1, -1));
 
-    LinearLayout week = Ui.row(this);
-    week.setPadding(Ui.dp(this, 20), Ui.dp(this, 4), Ui.dp(this, 12), Ui.dp(this, 6));
+    LinearLayout topBar = Ui.row(this);
+    topBar.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 4));
+    topBar.addView(
+        Ui.circleButton(this, R.drawable.ic_layers, "课表与导入", Ui.primary(this), this::importMenu));
+    TextView tableTitle = Ui.text(this, settings.get("title", "青大"), 18, Ui.ink(this));
+    Ui.emphasize(tableTitle, 700);
+    tableTitle.setGravity(Gravity.CENTER);
+    tableTitle.setSingleLine(true);
+    tableTitle.setEllipsize(TextUtils.TruncateAt.END);
+    tableTitle.setOnClickListener(v -> renameTable());
+    topBar.addView(tableTitle, new LinearLayout.LayoutParams(0, -2, 1));
+    topBar.addView(
+        Ui.circleButton(
+            this,
+            R.drawable.ic_add,
+            "添加课程",
+            Ui.primary(this),
+            () -> new Editors(this).edit(null, null, false)));
+    content.addView(topBar);
+
+    LinearLayout weekBar = Ui.row(this);
+    weekBar.setPadding(Ui.dp(this, 12), Ui.dp(this, 2), Ui.dp(this, 12), Ui.dp(this, 4));
     int w = Schedule.week(monday, settings.term());
-    LocalDate today = LocalDate.now(settings.zone());
-    boolean thisWeek = monday.equals(today.with(DayOfWeek.MONDAY));
-    LinearLayout titleCol = Ui.column(this);
-    TextView label = Ui.display(this, w < 1 ? "学期前" : w > 30 ? "学期后" : "第 " + w + " 周");
-    label.setTextSize(28);
-    titleCol.addView(label);
-    LocalDate sunday = monday.plusDays(6);
-    TextView range =
-        Ui.styled(
-            this,
-            monday.getMonthValue()
-                + "月"
-                + monday.getDayOfMonth()
-                + "日 – "
-                + sunday.getMonthValue()
-                + "月"
-                + sunday.getDayOfMonth()
-                + "日"
-                + (thisWeek ? "  ·  本周" : ""),
-            com.google.android.material.R.attr.textAppearanceBodyMedium,
-            thisWeek ? Ui.primary(this) : Ui.muted(this));
-    titleCol.addView(range);
-    week.addView(titleCol, new LinearLayout.LayoutParams(0, -2, 1));
 
-    week.addView(Ui.iconButton(this, R.drawable.ic_chevron_left, "上一周", true, () -> shift(-1)));
-    MaterialButton todayBtn =
-        Ui.withIcon(
-            Ui.tonalButton(
-                this,
-                "本周",
-                () -> {
-                  selected = LocalDate.now(settings.zone());
-                  monday = selected.with(DayOfWeek.MONDAY);
-                  render();
-                }),
-            R.drawable.ic_today);
-    todayBtn.setEnabled(!thisWeek);
-    LinearLayout.LayoutParams todayLp = new LinearLayout.LayoutParams(-2, -2);
-    todayLp.setMargins(Ui.dp(this, 4), 0, Ui.dp(this, 4), 0);
-    week.addView(todayBtn, todayLp);
-    week.addView(Ui.iconButton(this, R.drawable.ic_chevron_right, "下一周", true, () -> shift(1)));
-    content.addView(week);
+    ImageView prevBtn = Ui.icon(this, R.drawable.ic_chevron_left, 24, Ui.primary(this));
+    FrameLayout prevWrap = new FrameLayout(this);
+    prevWrap.addView(prevBtn, new FrameLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22), Gravity.CENTER));
+    prevWrap.setContentDescription(mode == 1 ? "前一天" : "上一周");
+    prevWrap.setClickable(true);
+    prevWrap.setFocusable(true);
+    prevWrap.setOnClickListener(v -> {
+      if (mode == 1) moveDay(-1);
+      else shift(-1);
+    });
+    weekBar.addView(prevWrap, new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 36)));
 
-    MaterialButtonToggleGroup toggle =
-        Ui.connectedGroup(
+    LinearLayout centerInfo = Ui.row(this);
+    centerInfo.setGravity(Gravity.CENTER);
+    if (mode == 1) {
+      TextView dLabel =
+          Ui.text(
+              this,
+              selected.getMonthValue()
+                  + "月"
+                  + selected.getDayOfMonth()
+                  + "日 "
+                  + Ui.day(selected.getDayOfWeek().getValue()),
+              18,
+              Ui.primary(this));
+      Ui.emphasize(dLabel, 700);
+      centerInfo.addView(dLabel);
+      if (w >= 1 && w <= 30) {
+        TextView wSub = Ui.text(this, "第" + w + "周", 13.5f, Ui.muted(this));
+        wSub.setPadding(Ui.dp(this, 8), 0, 0, 0);
+        centerInfo.addView(wSub);
+      }
+    } else {
+      TextView wLabel =
+          Ui.text(
+              this,
+              w < 1 ? "学期前" : w > 30 ? "学期后" : "第 " + w + " 周",
+              18,
+              Ui.primary(this));
+      Ui.emphasize(wLabel, 700);
+      centerInfo.addView(wLabel);
+      TextView dSub =
+          Ui.text(
+              this,
+              monday.getMonthValue() + "月" + monday.getDayOfMonth() + "日",
+              13.5f,
+              Ui.muted(this));
+      dSub.setPadding(Ui.dp(this, 8), 0, 0, 0);
+      centerInfo.addView(dSub);
+    }
+    centerInfo.setClickable(true);
+    centerInfo.setFocusable(true);
+    centerInfo.setOnClickListener(v -> pickWeek());
+    weekBar.addView(centerInfo, new LinearLayout.LayoutParams(0, Ui.dp(this, 36), 1));
+
+    TextView todayBtn = Ui.text(this, mode == 1 ? "本日" : "本周", 15, Ui.primary(this));
+    Ui.emphasize(todayBtn, 600);
+    todayBtn.setGravity(Gravity.CENTER);
+    todayBtn.setPadding(Ui.dp(this, 8), Ui.dp(this, 4), Ui.dp(this, 8), Ui.dp(this, 4));
+    todayBtn.setClickable(true);
+    todayBtn.setFocusable(true);
+    todayBtn.setOnClickListener(
+        v -> {
+          selected = LocalDate.now(settings.zone());
+          monday = selected.with(DayOfWeek.MONDAY);
+          evening = null;
+          render();
+        });
+    weekBar.addView(todayBtn, new LinearLayout.LayoutParams(-2, Ui.dp(this, 36)));
+
+    ImageView nextBtn = Ui.icon(this, R.drawable.ic_chevron_right, 24, Ui.primary(this));
+    FrameLayout nextWrap = new FrameLayout(this);
+    nextWrap.addView(nextBtn, new FrameLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22), Gravity.CENTER));
+    nextWrap.setContentDescription(mode == 1 ? "后一天" : "下一周");
+    nextWrap.setClickable(true);
+    nextWrap.setFocusable(true);
+    nextWrap.setOnClickListener(v -> {
+      if (mode == 1) moveDay(1);
+      else shift(1);
+    });
+    weekBar.addView(nextWrap, new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 36)));
+    content.addView(weekBar);
+
+    LinearLayout segmented =
+        Ui.segmentedControl(
             this,
-            new String[] {"周视图", "日视图", "列表"},
-            new int[] {R.drawable.ic_view_week, R.drawable.ic_view_day, R.drawable.ic_view_list},
+            new String[] {"周", "日", "列表"},
             mode,
-            0,
-            value ->
-                content.post(
-                    () -> {
-                      mode = value;
-                      render();
-                    }));
-    LinearLayout.LayoutParams tabs = new LinearLayout.LayoutParams(-1, Ui.dp(this, 48));
-    tabs.setMargins(Ui.dp(this, 16), Ui.dp(this, 2), Ui.dp(this, 16), Ui.dp(this, 10));
-    content.addView(toggle, tabs);
+            value -> {
+              if (mode != value) {
+                mode = value;
+                render();
+              }
+            });
+    LinearLayout.LayoutParams segLp = new LinearLayout.LayoutParams(-1, Ui.dp(this, 38));
+    segLp.setMargins(Ui.dp(this, 16), Ui.dp(this, 4), Ui.dp(this, 16), Ui.dp(this, 8));
+    content.addView(segmented, segLp);
+
     if (snapshot.items().isEmpty()) {
       LinearLayout pad = Ui.column(this);
-      pad.setPadding(Ui.dp(this, 16), 0, Ui.dp(this, 16), Ui.dp(this, 96));
+      pad.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 16), Ui.dp(this, 96));
       empty(
           pad,
           R.drawable.ic_school,
-          "新的学期，从这里开始",
-          "导入教务系统 PDF，或手动添加第一门课程。你的课表保存在本机。",
+          "当前课表为空",
+          "支持导入教务系统 PDF 课表，或手动添加课程。",
           this::importMenu,
           "导入课表",
           R.drawable.ic_upload_file);
@@ -401,160 +436,295 @@ public class MainActivity extends AppCompatActivity {
     else listView(content);
   }
 
+  void pickWeek() {
+    String[] items = new String[20];
+    for (int i = 0; i < 20; i++) items[i] = "第 " + (i + 1) + " 周";
+    new MaterialAlertDialogBuilder(this)
+        .setTitle("跳转周次")
+        .setItems(
+            items,
+            (d, which) -> {
+              monday = settings.term().plusWeeks(which);
+              selected = monday;
+              evening = null;
+              render();
+            })
+        .show();
+  }
+
   void shift(int n) {
     monday = monday.plusWeeks(n);
     selected = selected.plusWeeks(n);
+    evening = null;
+    render();
+  }
+
+  void moveDay(int n) {
+    selected = selected.plusDays(n);
+    monday = selected.with(DayOfWeek.MONDAY);
     render();
   }
 
   void weekGrid(LinearLayout parent) {
     LinearLayout header = Ui.row(this);
-    header.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), Ui.dp(this, 6));
-    TextView axis =
-        Ui.styled(this, "节次", com.google.android.material.R.attr.textAppearanceLabelSmall, Ui.muted(this));
+    header.setPadding(Ui.dp(this, 4), Ui.dp(this, 2), Ui.dp(this, 4), Ui.dp(this, 4));
+    TextView axis = Ui.text(this, "节次", 11, Ui.muted(this));
     axis.setGravity(Gravity.CENTER);
-    header.addView(axis, new LinearLayout.LayoutParams(Ui.dp(this, 42), Ui.dp(this, 52)));
+    header.addView(axis, new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 50)));
+
     LocalDate today = LocalDate.now(settings.zone());
+    boolean todayInWeek = !today.isBefore(monday) && !today.isAfter(monday.plusDays(6));
+    LocalDate highlightDate = todayInWeek ? today : selected;
+
     for (int d = 0; d < 7; d++) {
       LocalDate date = monday.plusDays(d);
-      boolean isToday = date.equals(today);
-      TextView h =
+      boolean active = date.equals(highlightDate);
+      LinearLayout cell = Ui.column(this);
+      cell.setGravity(Gravity.CENTER);
+      TextView dayName = Ui.text(this, Ui.day(d + 1), 11.5f, Ui.muted(this));
+      dayName.setGravity(Gravity.CENTER);
+      cell.addView(dayName);
+
+      TextView dayNum =
           Ui.text(
               this,
-              Ui.day(d + 1) + "\n" + date.getDayOfMonth(),
-              12,
-              isToday ? Ui.onPrimary(this) : Ui.muted(this));
-      h.setGravity(Gravity.CENTER);
-      h.setLineSpacing(Ui.dp(this, 1), 1);
-      Ui.emphasize(h, isToday ? 700 : 500);
-      if (isToday) h.setBackground(Ui.roundedBg(this, Ui.primary(this), 18, 0, 0));
-      h.setContentDescription(date + "，查看日课表");
-      h.setOnClickListener(
+              String.valueOf(date.getDayOfMonth()),
+              14,
+              active ? Ui.onPrimary(this) : Ui.ink(this));
+      dayNum.setGravity(Gravity.CENTER);
+      Ui.emphasize(dayNum, 700);
+      if (active) dayNum.setBackground(Ui.roundedBg(this, Ui.primary(this), 999, 0, 0));
+      LinearLayout.LayoutParams numLp =
+          new LinearLayout.LayoutParams(Ui.dp(this, 28), Ui.dp(this, 28));
+      numLp.topMargin = Ui.dp(this, 4);
+      cell.addView(dayNum, numLp);
+
+      cell.setContentDescription(date + "，查看日课表");
+      cell.setClickable(true);
+      cell.setFocusable(true);
+      cell.setOnClickListener(
           v -> {
             selected = date;
             mode = 1;
             render();
           });
-      LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, Ui.dp(this, 52), 1);
-      hp.setMargins(Ui.dp(this, 2), 0, Ui.dp(this, 2), 0);
-      header.addView(h, hp);
+      header.addView(cell, new LinearLayout.LayoutParams(0, Ui.dp(this, 52), 1));
     }
     parent.addView(header);
-    ScrollView vertical = new ScrollView(this);
-    parent.addView(vertical, new LinearLayout.LayoutParams(-1, 0, 1));
-    FrameLayout canvas = new FrameLayout(this);
-    vertical.addView(canvas, new ScrollView.LayoutParams(-1, Ui.dp(this, evening ? 850 : 690)));
-    canvas.addOnLayoutChangeListener(
-        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-          if (right - left != oldRight - oldLeft) populateGrid(canvas, evening ? 10 : 8);
-        });
-    canvas.post(() -> populateGrid(canvas, evening ? 10 : 8));
+
     boolean hasNight = false;
     for (int d = 0; d < 7; d++)
       if (Schedule.on(snapshot.items(), monday.plusDays(d), settings.term()).stream()
           .anyMatch(i -> i.start >= 1080)) hasNight = true;
+    boolean showEvening = evening != null ? evening : hasNight;
+    int count = showEvening ? 10 : 8;
+    int axisW = Ui.dp(this, 40);
+    int rowH = Ui.dp(this, 60);
+    int breakH = 0;
+    int totalH = periodTop(count, rowH, breakH);
+
+    ScrollView vertical = new ScrollView(this);
+    vertical.setVerticalScrollBarEnabled(false);
+    parent.addView(vertical, new LinearLayout.LayoutParams(-1, 0, 1));
+
+    LinearLayout scrollBody = Ui.column(this);
+    vertical.addView(scrollBody, new ScrollView.LayoutParams(-1, -2));
+
+    FrameLayout gridStage = new FrameLayout(this);
+    scrollBody.addView(gridStage, new LinearLayout.LayoutParams(-1, totalH));
+
+    int[] starts = settings.starts(), ends = settings.ends();
+    for (int i = 0; i < count; i++) {
+      int y = periodTop(i, rowH, breakH);
+      LinearLayout timeCell = Ui.column(this);
+      timeCell.setGravity(Gravity.CENTER);
+      TextView pNum = Ui.text(this, String.valueOf(i + 1), 11.5f, Ui.ink(this));
+      Ui.emphasize(pNum, 700);
+      pNum.setGravity(Gravity.CENTER);
+      TextView pStart = Ui.text(this, Schedule.time(starts[i]), 9f, Ui.muted(this));
+      pStart.setGravity(Gravity.CENTER);
+      TextView pEnd = Ui.text(this, Schedule.time(ends[i]), 9f, Ui.muted(this));
+      pEnd.setAlpha(0.75f);
+      pEnd.setGravity(Gravity.CENTER);
+      timeCell.addView(pNum);
+      timeCell.addView(pStart);
+      timeCell.addView(pEnd);
+      FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(axisW, rowH);
+      tp.topMargin = y;
+      gridStage.addView(timeCell, tp);
+
+      View line = new View(this);
+      line.setBackgroundColor(Ui.outlineVariant(this));
+      line.setAlpha(0.45f);
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, 1);
+      lp.leftMargin = axisW;
+      lp.topMargin = y;
+      gridStage.addView(line, lp);
+    }
+
+    LinearLayout columnsRow = Ui.row(this);
+    columnsRow.setGravity(Gravity.TOP);
+    FrameLayout.LayoutParams colsLp = new FrameLayout.LayoutParams(-1, totalH);
+    colsLp.leftMargin = axisW;
+    gridStage.addView(columnsRow, colsLp);
+
+    for (int d = 0; d < 7; d++) {
+      LocalDate date = monday.plusDays(d);
+      FrameLayout dayCol = new FrameLayout(this);
+      if (date.equals(highlightDate)) {
+        dayCol.setBackgroundColor(Ui.isDark(this) ? 0x0C4D94FF : 0x0A1A66E8);
+      }
+      columnsRow.addView(dayCol, new LinearLayout.LayoutParams(0, totalH, 1));
+
+      List<Item> dayItems = new ArrayList<>();
+      for (Item item : Schedule.on(snapshot.items(), date, settings.term())) {
+        if (!showEvening && item.start >= 1080) continue;
+        if (position(item.start, starts, ends) < count) dayItems.add(item);
+      }
+      List<List<Item>> groups = overlapGroups(dayItems);
+      for (List<Item> group : groups) {
+        if (group.size() == 1) {
+          Item item = group.get(0);
+          int topPx = minuteToY(item.start, starts, ends, count, rowH, breakH);
+          int bottomPx = minuteToY(item.end, starts, ends, count, rowH, breakH);
+          View card = buildGridCourseCard(item, date, false);
+          FrameLayout.LayoutParams cp =
+              new FrameLayout.LayoutParams(
+                  -1, Math.max(Ui.dp(this, 38), bottomPx - topPx - Ui.dp(this, 4)));
+          cp.topMargin = topPx + Ui.dp(this, 2);
+          cp.leftMargin = Ui.dp(this, 2);
+          cp.rightMargin = Ui.dp(this, 2);
+          dayCol.addView(card, cp);
+        } else {
+          int groupStart = group.stream().mapToInt(i -> i.start).min().orElse(510);
+          int groupEnd = group.stream().mapToInt(i -> i.end).max().orElse(610);
+          int topPx = minuteToY(groupStart, starts, ends, count, rowH, breakH);
+          int bottomPx = minuteToY(groupEnd, starts, ends, count, rowH, breakH);
+          LinearLayout laneRow = Ui.row(this);
+          laneRow.setGravity(Gravity.TOP);
+          for (Item item : group) {
+            View card = buildGridCourseCard(item, date, true);
+            LinearLayout.LayoutParams lp =
+                new LinearLayout.LayoutParams(
+                    0, Math.max(Ui.dp(this, 38), bottomPx - topPx - Ui.dp(this, 4)), 1);
+            lp.leftMargin = Ui.dp(this, 1);
+            lp.rightMargin = Ui.dp(this, 1);
+            laneRow.addView(card, lp);
+          }
+          FrameLayout.LayoutParams rp = new FrameLayout.LayoutParams(-1, -2);
+          rp.topMargin = topPx + Ui.dp(this, 2);
+          dayCol.addView(laneRow, rp);
+        }
+      }
+    }
+
+    LinearLayout footer = Ui.row(this);
+    footer.setGravity(Gravity.CENTER);
+    footer.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 16));
     MaterialButton nightBtn =
         Ui.withIcon(
             Ui.tonalButton(
                 this,
-                (hasNight ? "有晚间安排" : "晚间无课") + " · " + (evening ? "收起" : "展开"),
+                (hasNight ? "晚间有课" : "晚间无课") + " · " + (showEvening ? "收起" : "展开"),
                 () -> {
-                  evening = !evening;
+                  evening = !showEvening;
                   render();
                 }),
-            evening ? R.drawable.ic_expand_less : R.drawable.ic_bedtime);
-    LinearLayout.LayoutParams nightLp = new LinearLayout.LayoutParams(-2, Ui.dp(this, 48));
-    nightLp.setMargins(Ui.dp(this, 16), Ui.dp(this, 6), Ui.dp(this, 96), Ui.dp(this, 12));
-    parent.addView(nightBtn, nightLp);
+            showEvening ? R.drawable.ic_expand_less : R.drawable.ic_bedtime);
+    nightBtn.setMinHeight(0);
+    nightBtn.setMinimumHeight(0);
+    nightBtn.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 8));
+    footer.addView(nightBtn, new LinearLayout.LayoutParams(-2, -2));
+    scrollBody.addView(footer);
   }
 
-  void populateGrid(FrameLayout canvas, int count) {
-    if (canvas.getWidth() == 0) return;
-    canvas.removeAllViews();
-    int axis = Ui.dp(this, 42), row = Ui.dp(this, 82);
-    float width = (canvas.getWidth() - axis) / 7f;
-    int[] starts = settings.starts(), ends = settings.ends();
-    for (int i = 0; i < count; i++) {
-      TextView time =
+  private View buildGridCourseCard(Item item, LocalDate date, boolean conflict) {
+    MaterialCardView card = Ui.card(this);
+    card.setRadius(Ui.dp(this, 9));
+    card.setCardBackgroundColor(Ui.courseColor(this, item.color));
+    LinearLayout text = Ui.column(this);
+    int pad = Ui.dp(this, 4);
+    text.setPadding(pad, Ui.dp(this, 4), pad, pad);
+
+    View accent = new View(this);
+    accent.setBackground(Ui.roundedBg(this, Ui.courseAccent(this, item.color), 99, 0, 0));
+    LinearLayout.LayoutParams accentLp =
+        new LinearLayout.LayoutParams(-1, Ui.dp(this, 3));
+    accentLp.leftMargin = Ui.dp(this, 2);
+    accentLp.rightMargin = Ui.dp(this, 2);
+    accentLp.bottomMargin = Ui.dp(this, 3);
+    text.addView(accent, accentLp);
+
+    TextView title = Ui.text(this, item.title, 10.5f, Ui.courseInk(this, item.color));
+    Ui.emphasize(title, 700);
+    title.setMaxLines(3);
+    title.setEllipsize(TextUtils.TruncateAt.END);
+    title.setLineSpacing(0, 0.96f);
+    text.addView(title);
+
+    if (!item.location.isEmpty()) {
+      TextView location =
           Ui.text(
               this,
-              (i + 1) + "\n" + Schedule.time(starts[i]) + "\n" + Schedule.time(ends[i]),
-              10,
-              Ui.muted(this));
-      time.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-      FrameLayout.LayoutParams p = new FrameLayout.LayoutParams(axis, row);
-      p.topMargin = i * row + Ui.dp(this, 6);
-      canvas.addView(time, p);
-      View line = new View(this);
-      line.setBackgroundColor(Ui.outlineVariant(this));
-      line.setAlpha(0.6f);
-      FrameLayout.LayoutParams l = new FrameLayout.LayoutParams(-1, 1);
-      l.leftMargin = axis;
-      l.topMargin = i * row;
-      canvas.addView(line, l);
+              item.location.replace('_', ' '),
+              9f,
+              Ui.courseInk(this, item.color));
+      location.setAlpha(0.78f);
+      location.setMaxLines(3);
+      location.setEllipsize(TextUtils.TruncateAt.END);
+      location.setLineSpacing(0, 0.95f);
+      location.setPadding(0, Ui.dp(this, 2), 0, 0);
+      text.addView(location);
     }
-    for (int d = 0; d < 7; d++) {
-      LocalDate date = monday.plusDays(d);
-      List<Item> items = Schedule.on(snapshot.items(), date, settings.term());
-      for (Item item : items) {
-        if (!evening && item.start >= 1080) continue;
-        float top = position(item.start, starts, ends), bottom = position(item.end, starts, ends);
-        if (top >= count) continue;
-        bottom = Math.min(count, bottom);
-        long overlap = items.stream().filter(i -> Schedule.overlaps(i, item)).count();
-        int overlapIndex = 0;
-        for (Item other : items) {
-          if (other == item) break;
-          if (Schedule.overlaps(other, item)) overlapIndex++;
+    card.addView(text);
+    card.setContentDescription(
+        item.title
+            + "，"
+            + date
+            + "，"
+            + Schedule.time(item.start)
+            + "至"
+            + Schedule.time(item.end)
+            + "，"
+            + item.location
+            + (conflict ? "，有时间冲突" : ""));
+    card.setOnClickListener(v -> details(item, date));
+    return card;
+  }
+
+  private static List<List<Item>> overlapGroups(List<Item> items) {
+    List<List<Item>> groups = new ArrayList<>();
+    for (Item item : items) {
+      if (groups.isEmpty()) {
+        List<Item> g = new ArrayList<>();
+        g.add(item);
+        groups.add(g);
+      } else {
+        List<Item> last = groups.get(groups.size() - 1);
+        boolean overlaps = last.stream().anyMatch(other -> Schedule.overlaps(other, item));
+        if (overlaps) last.add(item);
+        else {
+          List<Item> g = new ArrayList<>();
+          g.add(item);
+          groups.add(g);
         }
-        MaterialCardView card = Ui.card(this);
-        card.setRadius(Ui.dp(this, 12));
-        card.setCardBackgroundColor(Ui.courseColor(this, item.color));
-        LinearLayout text = Ui.column(this);
-        int pad = Ui.dp(this, 5);
-        text.setPadding(pad, Ui.dp(this, 6), pad, pad);
-
-        View accent = new View(this);
-        accent.setBackground(Ui.roundedBg(this, Ui.courseAccent(this, item.color), 99, 0, 0));
-        LinearLayout.LayoutParams accentLp =
-            new LinearLayout.LayoutParams(Ui.dp(this, 16), Ui.dp(this, 4));
-        accentLp.bottomMargin = Ui.dp(this, 4);
-        text.addView(accent, accentLp);
-
-        TextView title = Ui.text(this, item.title, 11.5f, Ui.courseInk(this, item.color));
-        Ui.emphasize(title, 700);
-        title.setMaxLines(4);
-        title.setEllipsize(TextUtils.TruncateAt.END);
-        text.addView(title);
-        TextView location = Ui.text(this, item.location, 9.5f, Ui.courseInk(this, item.color));
-        location.setAlpha(0.78f);
-        location.setMaxLines(3);
-        location.setEllipsize(TextUtils.TruncateAt.END);
-        location.setPadding(0, Ui.dp(this, 2), 0, 0);
-        text.addView(location);
-        card.addView(text);
-        card.setContentDescription(
-            item.title
-                + "，"
-                + date
-                + "，"
-                + Schedule.time(item.start)
-                + "至"
-                + Schedule.time(item.end)
-                + "，"
-                + item.location
-                + (overlap > 1 ? "，有时间冲突" : ""));
-        card.setOnClickListener(v -> details(item, date));
-        int cw = Math.max(1, (int) (width / overlap));
-        FrameLayout.LayoutParams p =
-            new FrameLayout.LayoutParams(
-                cw - Ui.dp(this, 3),
-                Math.max(Ui.dp(this, 40), (int) ((bottom - top) * row) - Ui.dp(this, 5)));
-        p.leftMargin = axis + (int) (d * width) + overlapIndex * cw + Ui.dp(this, 1);
-        p.topMargin = (int) (top * row) + Ui.dp(this, 3);
-        canvas.addView(card, p);
       }
     }
+    return groups;
+  }
+
+  private static int periodTop(int periodIndex, int rowH, int breakH) {
+    int gaps = (periodIndex > 4 ? 1 : 0) + (periodIndex > 8 ? 1 : 0);
+    return periodIndex * rowH + gaps * breakH;
+  }
+
+  private static int minuteToY(
+      int minute, int[] starts, int[] ends, int count, int rowH, int breakH) {
+    float pos = Math.min(count, position(minute, starts, ends));
+    int idx = Math.min(count - 1, Math.max(0, (int) Math.floor(pos)));
+    float frac = pos - idx;
+    if (pos >= count) return periodTop(count, rowH, breakH);
+    return (int) (periodTop(idx, rowH, breakH) + frac * rowH);
   }
 
   static float position(int minute, int[] starts, int[] ends) {
@@ -566,55 +736,49 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void dayView(LinearLayout parent) {
-    // Connected weekday selector: tight inner corners, the selected day morphs to a full pill.
     LinearLayout days = Ui.row(this);
-    days.setPadding(Ui.dp(this, 16), 0, Ui.dp(this, 16), Ui.dp(this, 4));
+    days.setPadding(Ui.dp(this, 12), 0, Ui.dp(this, 12), Ui.dp(this, 6));
     for (int d = 0; d < 7; d++) {
       LocalDate date = monday.plusDays(d);
       boolean active = date.equals(selected);
-      MaterialCardView chip = new MaterialCardView(this);
-      chip.setCardElevation(0);
-      chip.setStrokeWidth(0);
-      chip.setCardBackgroundColor(active ? Ui.primary(this) : Ui.surfaceContainer(this));
-      float outer = 20, inner = active ? 20 : 6;
-      chip.setShapeAppearanceModel(
-          com.google.android.material.shape.ShapeAppearanceModel.builder()
-              .setTopLeftCornerSize(Ui.dp(this, d == 0 || active ? outer : inner))
-              .setBottomLeftCornerSize(Ui.dp(this, d == 0 || active ? outer : inner))
-              .setTopRightCornerSize(Ui.dp(this, d == 6 || active ? outer : inner))
-              .setBottomRightCornerSize(Ui.dp(this, d == 6 || active ? outer : inner))
-              .build());
       LinearLayout cell = Ui.column(this);
       cell.setGravity(Gravity.CENTER);
-      int fg = active ? Ui.onPrimary(this) : Ui.muted(this);
-      TextView dayName = Ui.text(this, Ui.day(d + 1), 12, fg);
+      TextView dayName = Ui.text(this, Ui.day(d + 1), 11.5f, Ui.muted(this));
       dayName.setGravity(Gravity.CENTER);
-      TextView dayNum = Ui.text(this, String.valueOf(date.getDayOfMonth()), 16, active ? fg : Ui.ink(this));
+      TextView dayNum =
+          Ui.text(
+              this,
+              String.valueOf(date.getDayOfMonth()),
+              14.5f,
+              active ? Ui.onPrimary(this) : Ui.ink(this));
       dayNum.setGravity(Gravity.CENTER);
       Ui.emphasize(dayNum, 700);
+      if (active) dayNum.setBackground(Ui.roundedBg(this, Ui.primary(this), 999, 0, 0));
+      LinearLayout.LayoutParams numLp =
+          new LinearLayout.LayoutParams(Ui.dp(this, 30), Ui.dp(this, 30));
+      numLp.topMargin = Ui.dp(this, 4);
       cell.addView(dayName);
-      cell.addView(dayNum);
-      chip.addView(cell, new FrameLayout.LayoutParams(-1, -1));
-      chip.setContentDescription(date + (active ? "，已选中" : ""));
-      chip.setOnClickListener(
+      cell.addView(dayNum, numLp);
+      cell.setContentDescription(date + (active ? "，已选中" : ""));
+      cell.setClickable(true);
+      cell.setFocusable(true);
+      cell.setOnClickListener(
           v -> {
             selected = date;
             render();
           });
-      LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(0, Ui.dp(this, 60), 1);
-      dlp.setMargins(Ui.dp(this, 1), 0, Ui.dp(this, 1), 0);
-      days.addView(chip, dlp);
+      days.addView(cell, new LinearLayout.LayoutParams(0, Ui.dp(this, 54), 1));
     }
     parent.addView(days);
 
     LinearLayout list = Ui.column(this);
-    list.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 96));
+    list.setPadding(Ui.dp(this, 16), Ui.dp(this, 6), Ui.dp(this, 16), Ui.dp(this, 96));
     parent.addView(Ui.scroll(this, list), new LinearLayout.LayoutParams(-1, 0, 1));
     List<Item> items = Schedule.on(snapshot.items(), selected, settings.term());
     LinearLayout headRow = Ui.row(this);
-    headRow.setPadding(Ui.dp(this, 4), 0, 0, Ui.dp(this, 6));
+    headRow.setPadding(Ui.dp(this, 4), 0, 0, Ui.dp(this, 8));
     headRow.addView(
-        Ui.heading(
+        Ui.subheading(
             this,
             selected.getMonthValue()
                 + "月"
@@ -624,14 +788,14 @@ public class MainActivity extends AppCompatActivity {
         new LinearLayout.LayoutParams(0, -2, 1));
     headRow.addView(
         Ui.pillBadge(
-            this, items.size() + " 项安排", Ui.primaryContainer(this), Ui.onPrimaryContainer(this)));
+            this, items.size() + " 项", Ui.primaryContainer(this), Ui.onPrimaryContainer(this)));
     list.addView(headRow);
     if (items.isEmpty())
       empty(
           list,
           R.drawable.ic_event_available,
-          "今天没有安排",
-          "可以专注学习，也可以给自己留一点空白。",
+          "当天暂无课程与日程",
+          "点按下方按钮添加当天安排。",
           () -> new Editors(this).edit(null, selected, true),
           "添加日程",
           R.drawable.ic_add);
@@ -646,24 +810,16 @@ public class MainActivity extends AppCompatActivity {
     parent.addView(Ui.scroll(this, list), new LinearLayout.LayoutParams(-1, 0, 1));
     List<Item> sorted = new ArrayList<>(snapshot.items());
     sorted.sort(Comparator.comparingInt((Item i) -> i.day).thenComparingInt(i -> i.start));
-    TextView summary = Ui.note(this, "全部 " + sorted.size() + " 项 · 点按编辑课程与循环规则");
-    summary.setPadding(Ui.dp(this, 4), 0, 0, Ui.dp(this, 4));
-    list.addView(summary);
-    // Group by weekday as an Expressive segmented list.
     int i = 0;
     while (i < sorted.size()) {
       int day = sorted.get(i).day, j = i;
       while (j < sorted.size() && sorted.get(j).day == day) j++;
       TextView header = Ui.sectionHeader(this, Ui.day(day) + " · " + (j - i) + " 项");
-      header.setPadding(Ui.dp(this, 4), Ui.dp(this, 14), 0, Ui.dp(this, 8));
+      header.setPadding(Ui.dp(this, 4), Ui.dp(this, 12), 0, Ui.dp(this, 6));
       list.addView(header);
       for (int k = i; k < j; k++) list.addView(itemCard(sorted.get(k), null, k - i, j - i));
       i = j;
     }
-  }
-
-  View itemCard(Item item, LocalDate date) {
-    return itemCard(item, date, 0, 1);
   }
 
   View itemCard(Item item, LocalDate date, int position, int count) {
@@ -671,29 +827,26 @@ public class MainActivity extends AppCompatActivity {
     MaterialCardView card = Ui.card(this);
     card.setCardBackgroundColor(Ui.courseColor(this, item.color));
     card.setShapeAppearanceModel(
-        count > 1
-            ? Ui.segment(this, position, count)
-            : Ui.corners(this, 24, 24));
+        count > 1 ? Ui.segment(this, position, count) : Ui.corners(this, 20, 20));
 
     LinearLayout outer = Ui.row(this);
-    outer.setGravity(Gravity.TOP);
-    outer.setPadding(Ui.dp(this, 14), Ui.dp(this, 14), Ui.dp(this, 16), Ui.dp(this, 14));
+    outer.setGravity(Gravity.CENTER_VERTICAL);
+    outer.setPadding(Ui.dp(this, 14), Ui.dp(this, 12), Ui.dp(this, 16), Ui.dp(this, 12));
 
-    // Leading time block on the course accent tone.
     LinearLayout timeBox = Ui.column(this);
     timeBox.setGravity(Gravity.CENTER);
-    timeBox.setBackground(Ui.roundedBg(this, Ui.courseAccent(this, item.color), 16, 0, 0));
+    timeBox.setBackground(Ui.roundedBg(this, Ui.courseAccent(this, item.color), 14, 0, 0));
     timeBox.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 8));
     int onAccent = Ui.courseColor(this, item.color);
-    TextView startT = Ui.text(this, Schedule.time(item.start), 14, onAccent);
+    TextView startT = Ui.text(this, Schedule.time(item.start), 13.5f, onAccent);
     Ui.emphasize(startT, 700);
     startT.setGravity(Gravity.CENTER);
     timeBox.addView(startT);
-    TextView endT = Ui.text(this, Schedule.time(item.end), 12, onAccent);
-    endT.setAlpha(0.85f);
+    TextView endT = Ui.text(this, Schedule.time(item.end), 11.5f, onAccent);
+    endT.setAlpha(0.88f);
     endT.setGravity(Gravity.CENTER);
     timeBox.addView(endT);
-    LinearLayout.LayoutParams timeLp = new LinearLayout.LayoutParams(Ui.dp(this, 60), -2);
+    LinearLayout.LayoutParams timeLp = new LinearLayout.LayoutParams(Ui.dp(this, 58), -2);
     timeLp.rightMargin = Ui.dp(this, 14);
     outer.addView(timeBox, timeLp);
 
@@ -705,15 +858,15 @@ public class MainActivity extends AppCompatActivity {
                 ? Ui.day(date.getDayOfWeek().getValue())
                     + ("EVENT".equals(item.type) ? " · 日程" : " · 课程")
                 : item.date.isEmpty() ? Ui.day(item.day) + " · " + item.weeks : item.date,
-            12,
+            11.5f,
             ink);
-    meta.setAlpha(0.8f);
+    meta.setAlpha(0.78f);
     Ui.emphasize(meta, 500);
     box.addView(meta);
 
     TextView title = Ui.title(this, (item.done ? "✓ " : "") + item.title, ink);
-    title.setTextSize(18);
-    title.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 4));
+    title.setTextSize(16.5f);
+    title.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 3));
     if (item.done) {
       title.setPaintFlags(title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
       title.setAlpha(0.7f);
@@ -726,7 +879,7 @@ public class MainActivity extends AppCompatActivity {
             (item.location.isEmpty() ? "未设置地点" : item.location)
                 + (item.teacher.isEmpty() ? "" : " · " + item.teacher)
                 + (item.reminder >= 0 ? " · 提前" + item.reminder + "分钟提醒" : ""),
-            13,
+            12.5f,
             ink);
     sub.setAlpha(0.8f);
     box.addView(sub);
@@ -756,27 +909,26 @@ public class MainActivity extends AppCompatActivity {
             + (item.excludedDates.isEmpty()
                 ? ""
                 : "\n已跳过日期：" + String.join("、", item.excludedDates));
-    var dialog =
-        new MaterialAlertDialogBuilder(this)
-            .setIcon("EVENT".equals(item.type) ? R.drawable.ic_event : R.drawable.ic_school)
-            .setTitle(item.title)
-            .setMessage(content)
-            .setPositiveButton(
-                "编辑",
-                (d, w) -> {
-                  if (date != null && item.date.isEmpty())
-                    new MaterialAlertDialogBuilder(this)
-                        .setIcon(R.drawable.ic_edit)
-                        .setTitle("编辑范围")
-                        .setItems(
-                            new String[] {"仅本次（" + date + "）", "整个循环课程"},
-                            (dd, n) -> new Editors(this).edit(item, n == 0 ? date : null, false))
-                        .show();
-                  else new Editors(this).edit(item, null, "EVENT".equals(item.type));
-                })
-            .setNegativeButton("关闭", null)
-            .setNeutralButton("删除", (d, w) -> remove(item, date));
-    dialog.show();
+    new MaterialAlertDialogBuilder(this)
+        .setIcon("EVENT".equals(item.type) ? R.drawable.ic_event : R.drawable.ic_school)
+        .setTitle(item.title)
+        .setMessage(content)
+        .setPositiveButton(
+            "编辑",
+            (d, w) -> {
+              if (date != null && item.date.isEmpty())
+                new MaterialAlertDialogBuilder(this)
+                    .setIcon(R.drawable.ic_edit)
+                    .setTitle("编辑范围")
+                    .setItems(
+                        new String[] {"仅本次（" + date + "）", "整个循环课程"},
+                        (dd, n) -> new Editors(this).edit(item, n == 0 ? date : null, false))
+                    .show();
+              else new Editors(this).edit(item, null, "EVENT".equals(item.type));
+            })
+        .setNegativeButton("关闭", null)
+        .setNeutralButton("删除", (d, w) -> remove(item, date))
+        .show();
   }
 
   void remove(Item item, LocalDate date) {
@@ -798,23 +950,67 @@ public class MainActivity extends AppCompatActivity {
                   else next.remove(i);
                   break;
                 }
-              review("确认删除", base, next, "删除后可通过已有的 JSON 备份恢复。", () -> save(base.revision(), next));
+              review(
+                  "确认删除",
+                  base,
+                  next,
+                  "删除后可通过已有的 JSON 备份恢复。",
+                  () -> save(base.revision(), next));
             })
         .setNegativeButton("取消", null)
         .show();
   }
 
-  // ---- Agenda page -------------------------------------------------------------------------
-
   void agenda() {
+    LinearLayout outer = Ui.column(this);
+    body.addView(outer, new FrameLayout.LayoutParams(-1, -1));
+
+    LinearLayout topBar = Ui.row(this);
+    topBar.setPadding(Ui.dp(this, 20), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 6));
+    TextView pageTitle = Ui.display(this, "日程");
+    pageTitle.setTextSize(26);
+    topBar.addView(pageTitle, new LinearLayout.LayoutParams(0, -2, 1));
+    topBar.addView(
+        Ui.circleButton(
+            this,
+            R.drawable.ic_add,
+            "新建日程",
+            Ui.primary(this),
+            () -> new Editors(this).edit(null, LocalDate.now(settings.zone()), true)));
+    outer.addView(topBar);
+
     LinearLayout list = Ui.column(this);
-    list.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 96));
-    body.addView(Ui.scroll(this, list));
+    list.setPadding(Ui.dp(this, 16), Ui.dp(this, 4), Ui.dp(this, 16), Ui.dp(this, 96));
+    outer.addView(Ui.scroll(this, list), new LinearLayout.LayoutParams(-1, 0, 1));
 
     boolean notifications = NotificationManagerCompat.from(this).areNotificationsEnabled();
     boolean exact =
         Build.VERSION.SDK_INT < 31
             || getSystemService(AlarmManager.class).canScheduleExactAlarms();
+
+    if (!notifications || !exact) {
+      MaterialCardView permBanner =
+          Ui.listItem(
+              this,
+              !notifications ? R.drawable.ic_notifications : R.drawable.ic_alarm,
+              !notifications ? "通知权限未开启" : "精确提醒权限待开启",
+              !notifications ? "开启后可在课前与日程到点时收到横幅提醒" : "开启后可在省电与锁屏下准点唤醒提醒",
+              Ui.filledButton(
+                  this,
+                  "开启",
+                  () -> {
+                    if (!notifications && Build.VERSION.SDK_INT >= 33)
+                      notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+                    else new SettingsScreen(this).requestExactAlarmPermission();
+                  }),
+              0,
+              1,
+              null);
+      LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2);
+      bp.bottomMargin = Ui.dp(this, 12);
+      permBanner.setLayoutParams(bp);
+      list.addView(permBanner);
+    }
 
     var events = new ArrayList<Item>();
     for (Item i : snapshot.items()) if ("EVENT".equals(i.type)) events.add(i);
@@ -823,104 +1019,14 @@ public class MainActivity extends AppCompatActivity {
     var done = new ArrayList<Item>();
     for (Item i : events) (i.done ? done : open).add(i);
 
-    // Hero: emphasized headline, Expressive shape mark, status chips and a medium CTA.
-    MaterialCardView hero = Ui.heroCard(this);
-    LinearLayout heroBox = Ui.column(this);
-    heroBox.setPadding(Ui.dp(this, 24), Ui.dp(this, 22), Ui.dp(this, 24), Ui.dp(this, 22));
-    LinearLayout heroTop = Ui.row(this);
-    LinearLayout heroText = Ui.column(this);
-    TextView hTitle = Ui.display(this, "日程与待办");
-    hTitle.setTextColor(Ui.onPrimaryContainer(this));
-    hTitle.setTextSize(28);
-    heroText.addView(hTitle);
-    TextView hCount =
-        Ui.label(
-            this,
-            open.isEmpty() ? "暂无待完成事项" : open.size() + " 项待完成 · " + done.size() + " 项已完成",
-            Ui.onPrimaryContainer(this));
-    hCount.setAlpha(0.85f);
-    hCount.setPadding(0, Ui.dp(this, 4), 0, 0);
-    heroText.addView(hCount);
-    heroTop.addView(heroText, new LinearLayout.LayoutParams(0, -2, 1));
-    heroTop.addView(
-        Ui.shapeIcon(
-            this,
-            ExpressiveShapes.SUNNY,
-            R.drawable.ic_event_available,
-            Ui.primary(this),
-            Ui.onPrimary(this),
-            72,
-            32));
-    heroBox.addView(heroTop);
-
-    TextView hNote =
-        Ui.text(this, "把计划放进时间里。日程会与课程一起检查冲突并提醒。", 14, Ui.onPrimaryContainer(this));
-    hNote.setLineSpacing(Ui.dp(this, 2), 1);
-    hNote.setPadding(0, Ui.dp(this, 12), 0, Ui.dp(this, 12));
-    heroBox.addView(hNote);
-
-    LinearLayout chips = Ui.row(this);
-    chips.addView(
-        statusChip(notifications ? "通知已开启" : "通知未开启", R.drawable.ic_notifications, notifications, null));
-    View exactChip =
-        statusChip(
-            exact ? "精确提醒就绪" : "近似提醒 · 点按授权",
-            R.drawable.ic_alarm,
-            exact,
-            () -> {
-              page = 2;
-              render();
-            });
-    LinearLayout.LayoutParams ecLp = new LinearLayout.LayoutParams(-2, -2);
-    ecLp.leftMargin = Ui.dp(this, 8);
-    chips.addView(exactChip, ecLp);
-    HorizontalScrollView chipScroll = new HorizontalScrollView(this);
-    chipScroll.setHorizontalScrollBarEnabled(false);
-    chipScroll.addView(chips);
-    heroBox.addView(chipScroll);
-
-    MaterialButton create =
-        Ui.withIcon(
-            Ui.heroButton(
-                this,
-                "新建日程",
-                () -> new Editors(this).edit(null, LocalDate.now(settings.zone()), true)),
-            R.drawable.ic_add);
-    LinearLayout.LayoutParams createLp = new LinearLayout.LayoutParams(-1, -2);
-    createLp.topMargin = Ui.dp(this, 10);
-    heroBox.addView(create, createLp);
-    hero.addView(heroBox);
-    LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, -2);
-    heroLp.bottomMargin = Ui.dp(this, 14);
-    list.addView(hero, heroLp);
-
-    if (!notifications || !exact) {
-      list.addView(
-          Ui.permissionCard(
-              this,
-              !notifications ? R.drawable.ic_notifications : R.drawable.ic_alarm,
-              !notifications ? "开启课前与日程通知权限" : "开启精确分钟提醒权限",
-              !notifications
-                  ? "当前尚未开启系统通知权限，日程与课程到点时无法弹出提醒。点按一键授权。"
-                  : "当前使用系统近似提醒，开启精确闹钟权限后可在锁屏与省电模式下准点唤醒。",
-              !notifications ? "待开启通知" : "建议开启",
-              false,
-              !notifications ? "设置通知权限" : "允许精确提醒",
-              () -> {
-                if (!notifications && Build.VERSION.SDK_INT >= 33)
-                  notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
-                else new SettingsScreen(this).requestExactAlarmPermission();
-              }));
-    }
-
     if (events.isEmpty()) {
       empty(
           list,
           R.drawable.ic_edit_calendar,
-          "还没有日程",
-          "添加自习、考试、会议或生活计划。",
+          "暂无日程安排",
+          "可添加考试、自习或待办事项，与课表共用冲突检查和提醒。",
           () -> new Editors(this).edit(null, LocalDate.now(settings.zone()), true),
-          "安排一件事",
+          "新建日程",
           R.drawable.ic_add);
       return;
     }
@@ -936,7 +1042,7 @@ public class MainActivity extends AppCompatActivity {
 
   private TextView agendaHeader(String s) {
     TextView h = Ui.sectionHeader(this, s);
-    h.setPadding(Ui.dp(this, 4), Ui.dp(this, 10), 0, Ui.dp(this, 8));
+    h.setPadding(Ui.dp(this, 4), Ui.dp(this, 8), 0, Ui.dp(this, 8));
     return h;
   }
 
@@ -955,23 +1061,6 @@ public class MainActivity extends AppCompatActivity {
     row.addView(check);
     row.addView(itemCard(item, null, position, count), new LinearLayout.LayoutParams(0, -2, 1));
     return row;
-  }
-
-  private View statusChip(String text, int icon, boolean ok, Runnable action) {
-    Chip chip = new Chip(this);
-    chip.setText(text);
-    chip.setChipIconResource(icon);
-    chip.setChipIconVisible(true);
-    chip.setChipBackgroundColor(
-        ColorStateList.valueOf(ok ? Ui.successContainer(this) : Ui.tertiaryContainer(this)));
-    int fg = ok ? Ui.onSuccessContainer(this) : Ui.onTertiaryContainer(this);
-    chip.setTextColor(fg);
-    chip.setChipIconTint(ColorStateList.valueOf(fg));
-    chip.setChipStrokeWidth(0);
-    chip.setEnsureMinTouchTargetSize(false);
-    if (action != null) chip.setOnClickListener(v -> action.run());
-    else chip.setClickable(false);
-    return chip;
   }
 
   void empty(

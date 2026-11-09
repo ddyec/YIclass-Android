@@ -22,10 +22,6 @@ import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.textfield.*;
 import java.util.function.IntConsumer;
 
-/**
- * Programmatic Material 3 Expressive toolkit: emphasized typography, Expressive buttons with
- * shape morphing, connected button groups, segmented lists and Expressive shape containers.
- */
 final class Ui {
   private Ui() {}
 
@@ -48,8 +44,6 @@ final class Ui {
   static boolean isDark(Context c) {
     return (c.getResources().getConfiguration().uiMode & 48) == 32;
   }
-
-  // ---- Color roles -------------------------------------------------------------------------
 
   static int ink(Context c) {
     return color(c, com.google.android.material.R.attr.colorOnSurface);
@@ -95,14 +89,6 @@ final class Ui {
     return color(c, com.google.android.material.R.attr.colorOnTertiaryContainer);
   }
 
-  static int errorContainer(Context c) {
-    return color(c, com.google.android.material.R.attr.colorErrorContainer);
-  }
-
-  static int onErrorContainer(Context c) {
-    return color(c, com.google.android.material.R.attr.colorOnErrorContainer);
-  }
-
   static int surface(Context c) {
     return color(c, com.google.android.material.R.attr.colorSurface);
   }
@@ -130,8 +116,6 @@ final class Ui {
   static int outlineVariant(Context c) {
     return color(c, com.google.android.material.R.attr.colorOutlineVariant);
   }
-
-  // ---- Layout ------------------------------------------------------------------------------
 
   static LinearLayout column(Context c) {
     LinearLayout l = new LinearLayout(c);
@@ -165,14 +149,6 @@ final class Ui {
     return lp;
   }
 
-  static View space(Context c, int dp) {
-    View v = new View(c);
-    v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, dp), dp(c, dp)));
-    return v;
-  }
-
-  // ---- Typography (emphasized Expressive type) ----------------------------------------------
-
   static TextView text(Context c, String s, float sp, int color) {
     TextView t = new TextView(c);
     t.setText(s);
@@ -190,11 +166,14 @@ final class Ui {
     return t;
   }
 
-  /** Emphasized weight: variable weight on API 28+, bold below. */
   static void emphasize(TextView t, int weight) {
     if (Build.VERSION.SDK_INT >= 28)
-      t.setTypeface(Typeface.create(Typeface.create("sans-serif", Typeface.NORMAL), weight, false));
-    else t.setTypeface(Typeface.create("sans-serif-medium", weight >= 600 ? Typeface.BOLD : Typeface.NORMAL));
+      t.setTypeface(
+          Typeface.create(Typeface.create("sans-serif", Typeface.NORMAL), weight, false));
+    else
+      t.setTypeface(
+          Typeface.create(
+              "sans-serif-medium", weight >= 600 ? Typeface.BOLD : Typeface.NORMAL));
   }
 
   static TextView display(Context c, String s) {
@@ -242,11 +221,9 @@ final class Ui {
 
   static TextView sectionHeader(Context c, String s) {
     TextView t = label(c, s, primary(c));
-    t.setPadding(dp(c, 16), dp(c, 22), dp(c, 16), dp(c, 10));
+    t.setPadding(dp(c, 16), dp(c, 18), dp(c, 16), dp(c, 8));
     return t;
   }
-
-  // ---- Shapes ------------------------------------------------------------------------------
 
   static GradientDrawable roundedBg(
       Context c, int fill, float radiusDp, int strokeWidthDp, int strokeColor) {
@@ -258,7 +235,6 @@ final class Ui {
     return d;
   }
 
-  /** A Material 3 Expressive shape (cookie, sunny, clover, ...) filled with a color role. */
   static Drawable expressiveShape(RoundedPolygon polygon, int color) {
     ShapeDrawable d = ExpressiveShapes.drawable(polygon);
     d.getPaint().setColor(color);
@@ -275,7 +251,50 @@ final class Ui {
     return v;
   }
 
-  /** Icon centered on an Expressive shape, e.g. the hero / empty-state / leading-list marks. */
+  static FrameLayout circleButton(
+      Context c, int iconRes, String description, int iconTint, Runnable action) {
+    FrameLayout btn = new FrameLayout(c);
+    int fill = isDark(c) ? 0xFF1F222B : 0xFFE9ECF4;
+    int stroke = isDark(c) ? 0xFF2E323E : 0xFFD9DEE9;
+    btn.setBackground(roundedBg(c, fill, 999, 1, stroke));
+    ImageView img = new ImageView(c);
+    img.setImageResource(iconRes);
+    img.setImageTintList(ColorStateList.valueOf(iconTint));
+    img.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    btn.addView(img, new FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER));
+    btn.setContentDescription(description);
+    androidx.appcompat.widget.TooltipCompat.setTooltipText(btn, description);
+    btn.setClickable(true);
+    btn.setFocusable(true);
+    btn.setOnClickListener(v -> action.run());
+    btn.setLayoutParams(new LinearLayout.LayoutParams(dp(c, 42), dp(c, 42)));
+    return btn;
+  }
+
+  static LinearLayout segmentedControl(
+      Context c, String[] labels, int checked, IntConsumer onPick) {
+    LinearLayout track = row(c);
+    int trackFill = isDark(c) ? 0xFF1C1D24 : 0xFFE6E9F2;
+    track.setBackground(roundedBg(c, trackFill, 999, 0, 0));
+    int pad = dp(c, 3);
+    track.setPadding(pad, pad, pad, pad);
+    int thumbFill = isDark(c) ? 0xFF606168 : 0xFFFFFFFF;
+    for (int i = 0; i < labels.length; i++) {
+      final int idx = i;
+      boolean active = i == checked;
+      TextView tab = text(c, labels[i], 14, active ? ink(c) : (isDark(c) ? 0xFFD5D7E0 : muted(c)));
+      emphasize(tab, active ? 700 : 500);
+      tab.setGravity(Gravity.CENTER);
+      if (active) tab.setBackground(roundedBg(c, thumbFill, 999, 0, 0));
+      tab.setContentDescription(labels[i]);
+      tab.setClickable(true);
+      tab.setFocusable(true);
+      tab.setOnClickListener(v -> onPick.accept(idx));
+      track.addView(tab, new LinearLayout.LayoutParams(0, -1, 1));
+    }
+    return track;
+  }
+
   static FrameLayout shapeIcon(
       Context c, RoundedPolygon polygon, int iconRes, int bg, int fg, int sizeDp, int iconDp) {
     FrameLayout f = new FrameLayout(c);
@@ -298,14 +317,11 @@ final class Ui {
         .build();
   }
 
-  /** Expressive segmented-list shape: large outer corners, tight inner corners. */
   static ShapeAppearanceModel segment(Context c, int position, int count) {
-    float outer = 24, inner = 6;
+    float outer = 20, inner = 6;
     boolean first = position == 0, last = position == count - 1;
     return corners(c, first ? outer : inner, last ? outer : inner);
   }
-
-  // ---- Badges ------------------------------------------------------------------------------
 
   static TextView pillBadge(Context c, String label, int bg, int fg) {
     TextView t = styled(c, label, com.google.android.material.R.attr.textAppearanceLabelMedium, fg);
@@ -338,8 +354,6 @@ final class Ui {
     return handle;
   }
 
-  // ---- Buttons (Expressive: shape morph on press, size overlays) ---------------------------
-
   private static MaterialButton make(Context c, int styleAttr, String text, Runnable action) {
     MaterialButton b = new MaterialButton(c, null, styleAttr);
     b.setText(text);
@@ -350,34 +364,24 @@ final class Ui {
     return b;
   }
 
-  /** Outlined button – low emphasis. */
   static MaterialButton button(Context c, String text, Runnable action) {
     return make(c, com.google.android.material.R.attr.materialButtonOutlinedStyle, text, action);
   }
 
-  /** Text button – lowest emphasis. */
   static MaterialButton textButton(Context c, String text, Runnable action) {
     return make(c, androidx.appcompat.R.attr.borderlessButtonStyle, text, action);
   }
 
-  /** Filled tonal – medium emphasis. */
   static MaterialButton tonalButton(Context c, String text, Runnable action) {
     return make(c, com.google.android.material.R.attr.materialButtonTonalStyle, text, action);
   }
 
-  /** Filled – high emphasis. */
   static MaterialButton filledButton(Context c, String text, Runnable action) {
     return make(c, com.google.android.material.R.attr.materialButtonStyle, text, action);
   }
 
-  /** Medium (56dp) filled – hero call to action. */
   static MaterialButton heroButton(Context c, String text, Runnable action) {
     return make(c, R.attr.yiButtonFilledMedium, text, action);
-  }
-
-  /** Medium (56dp) tonal. */
-  static MaterialButton heroTonalButton(Context c, String text, Runnable action) {
-    return make(c, R.attr.yiButtonTonalMedium, text, action);
   }
 
   static MaterialButton withIcon(MaterialButton b, int iconRes) {
@@ -397,31 +401,11 @@ final class Ui {
                 : com.google.android.material.R.attr.materialIconButtonStyle);
     b.setIconResource(iconRes);
     b.setContentDescription(description);
-    TooltipCompatHolder.set(b, description);
+    androidx.appcompat.widget.TooltipCompat.setTooltipText(b, description);
     b.setOnClickListener(v -> action.run());
     return b;
   }
 
-  static MaterialButton mediumIconButton(
-      Context c, int iconRes, String description, Runnable action) {
-    MaterialButton b = new MaterialButton(c, null, R.attr.yiIconButtonTonalMedium);
-    b.setIconResource(iconRes);
-    b.setContentDescription(description);
-    TooltipCompatHolder.set(b, description);
-    b.setOnClickListener(v -> action.run());
-    return b;
-  }
-
-  private static final class TooltipCompatHolder {
-    static void set(View v, String text) {
-      androidx.appcompat.widget.TooltipCompat.setTooltipText(v, text);
-    }
-  }
-
-  /**
-   * Expressive connected button group (replaces segmented buttons). Selected item morphs to the
-   * checked shape and switches to the primary container.
-   */
   static MaterialButtonToggleGroup connectedGroup(
       Context c, String[] labels, int[] icons, int checked, float textSp, IntConsumer onPick) {
     MaterialButtonToggleGroup group = new MaterialButtonToggleGroup(c);
@@ -461,8 +445,6 @@ final class Ui {
     return group;
   }
 
-  // ---- Containers --------------------------------------------------------------------------
-
   static MaterialCardView card(Context c) {
     MaterialCardView v = new MaterialCardView(c);
     v.setRadius(dp(c, 16));
@@ -472,25 +454,15 @@ final class Ui {
     return v;
   }
 
-  static MaterialCardView heroCard(Context c) {
-    MaterialCardView v = new MaterialCardView(c);
-    v.setRadius(dp(c, 32));
-    v.setCardElevation(0);
-    v.setStrokeWidth(0);
-    v.setCardBackgroundColor(primaryContainer(c));
-    return v;
-  }
-
   static MaterialCardView surfaceCard(Context c) {
     MaterialCardView v = new MaterialCardView(c);
-    v.setRadius(dp(c, 28));
+    v.setRadius(dp(c, 22));
     v.setCardElevation(0);
     v.setStrokeWidth(0);
     v.setCardBackgroundColor(surfaceContainer(c));
     return v;
   }
 
-  /** One row of an Expressive segmented list (grouped with 2dp gaps). */
   static MaterialCardView listItem(
       Context c,
       int iconRes,
@@ -506,7 +478,7 @@ final class Ui {
     card.setCardBackgroundColor(surfaceLowest(c));
     card.setShapeAppearanceModel(segment(c, position, count));
     LinearLayout row = row(c);
-    row.setMinimumHeight(dp(c, 72));
+    row.setMinimumHeight(dp(c, 64));
     row.setPadding(dp(c, 16), dp(c, 12), dp(c, 16), dp(c, 12));
     if (iconRes != 0) {
       FrameLayout lead =
@@ -516,10 +488,10 @@ final class Ui {
               iconRes,
               secondaryContainer(c),
               onSecondaryContainer(c),
-              40,
-              22);
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(c, 40), dp(c, 40));
-      lp.rightMargin = dp(c, 16);
+              38,
+              20);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(c, 38), dp(c, 38));
+      lp.rightMargin = dp(c, 14);
       row.addView(lead, lp);
     }
     LinearLayout texts = column(c);
@@ -547,98 +519,47 @@ final class Ui {
   }
 
   static TextView trailingValue(Context c, String value) {
-    TextView t = styled(c, value, com.google.android.material.R.attr.textAppearanceLabelLarge, primary(c));
+    TextView t =
+        styled(c, value, com.google.android.material.R.attr.textAppearanceLabelLarge, primary(c));
     t.setMaxWidth(dp(c, 140));
     t.setSingleLine(true);
     t.setEllipsize(TextUtils.TruncateAt.END);
     return t;
   }
 
-  /** Prominent permission banner: Expressive shape mark, status badge and full-width CTA. */
-  static MaterialCardView permissionCard(
+  static View emptyState(
       Context c,
       int iconRes,
       String title,
-      String subtitle,
-      String statusText,
-      boolean granted,
-      String actionText,
+      String note,
+      String button,
+      int buttonIcon,
       Runnable action) {
-    MaterialCardView card = new MaterialCardView(c);
-    card.setRadius(dp(c, 28));
-    card.setCardElevation(0);
-    card.setStrokeWidth(0);
-    card.setCardBackgroundColor(granted ? surfaceContainer(c) : tertiaryContainer(c));
-    int fg = granted ? ink(c) : onTertiaryContainer(c);
-
-    LinearLayout body = column(c);
-    inset(body, 20);
-    LinearLayout topRow = row(c);
-    topRow.addView(
-        shapeIcon(
-            c,
-            ExpressiveShapes.SOFT_BURST,
-            iconRes,
-            granted ? secondaryContainer(c) : tertiary(c),
-            granted
-                ? onSecondaryContainer(c)
-                : color(c, com.google.android.material.R.attr.colorOnTertiary),
-            48,
-            24));
-    LinearLayout titleCol = column(c);
-    titleCol.setPadding(dp(c, 14), 0, dp(c, 8), 0);
-    TextView titleView = subheading(c, title);
-    titleView.setTextColor(fg);
-    titleCol.addView(titleView);
-    topRow.addView(titleCol, new LinearLayout.LayoutParams(0, -2, 1));
-    topRow.addView(
-        granted
-            ? statusBadge(c, statusText, true)
-            : pillBadge(
-                c,
-                statusText,
-                tertiary(c),
-                color(c, com.google.android.material.R.attr.colorOnTertiary)));
-    body.addView(topRow);
-
-    TextView desc = note(c, subtitle);
-    desc.setTextColor(fg);
-    desc.setAlpha(granted ? 1f : 0.86f);
-    desc.setPadding(0, dp(c, 12), 0, dp(c, 14));
-    body.addView(desc);
-
-    MaterialButton cta =
-        granted ? tonalButton(c, actionText, action) : filledButton(c, actionText, action);
-    body.addView(cta, new LinearLayout.LayoutParams(-1, dp(c, 48)));
-    card.addView(body);
-    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-    lp.bottomMargin = dp(c, 12);
-    card.setLayoutParams(lp);
-    return card;
-  }
-
-  /** Expressive empty state: large cookie shape mark, emphasized headline and a medium CTA. */
-  static View emptyState(
-      Context c, int iconRes, String title, String note, String button, int buttonIcon, Runnable action) {
     MaterialCardView card = surfaceCard(c);
-    card.setRadius(dp(c, 32));
+    card.setRadius(dp(c, 24));
     LinearLayout box = column(c);
     box.setPadding(dp(c, 24), dp(c, 28), dp(c, 24), dp(c, 24));
     box.setGravity(Gravity.CENTER_HORIZONTAL);
     FrameLayout mark =
         shapeIcon(
-            c, ExpressiveShapes.COOKIE_9, iconRes, primaryContainer(c), onPrimaryContainer(c), 112, 48);
+            c,
+            ExpressiveShapes.CIRCLE,
+            iconRes,
+            primaryContainer(c),
+            onPrimaryContainer(c),
+            64,
+            30);
     box.addView(mark);
     TextView h = heading(c, title);
     h.setGravity(Gravity.CENTER);
-    h.setPadding(0, dp(c, 18), 0, dp(c, 4));
+    h.setPadding(0, dp(c, 14), 0, dp(c, 4));
     box.addView(h);
     TextView message = note(c, note);
     message.setGravity(Gravity.CENTER);
     box.addView(message);
-    MaterialButton cta = withIcon(heroButton(c, button, action), buttonIcon);
+    MaterialButton cta = withIcon(filledButton(c, button, action), buttonIcon);
     LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-2, -2);
-    bp.topMargin = dp(c, 12);
+    bp.topMargin = dp(c, 10);
     box.addView(cta, bp);
     card.addView(box);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
@@ -646,8 +567,6 @@ final class Ui {
     card.setLayoutParams(lp);
     return card;
   }
-
-  // ---- Text fields -------------------------------------------------------------------------
 
   static TextInputEditText field(
       LinearLayout parent, String label, String value, boolean multiline) {
@@ -693,30 +612,28 @@ final class Ui {
     return e.getText() == null ? "" : e.getText().toString().trim();
   }
 
-  // ---- Domain helpers ----------------------------------------------------------------------
-
   static String day(int day) {
     return new String[] {"周一", "周二", "周三", "周四", "周五", "周六", "周日"}[day - 1];
   }
 
   static int courseColor(Context c, int index) {
     return (isDark(c)
-            ? new int[] {0xff5b2a3c, 0xff2c3a76, 0xff1d4d45, 0xff58401b, 0xff4c2d63, 0xff1f4660}
-            : new int[] {0xffffd9e2, 0xffdde1ff, 0xffc4efe3, 0xffffdeaf, 0xfff3daff, 0xffcde5ff})
+            ? new int[] {0xff4a2835, 0xff233362, 0xff1b433b, 0xff4c381c, 0xff3f2854, 0xff1d3d56}
+            : new int[] {0xffffe4ea, 0xffe2e8ff, 0xffd2f4ea, 0xffffebca, 0xfff3e2ff, 0xffd6ecff})
         [Math.floorMod(index, 6)];
   }
 
   static int courseAccent(Context c, int index) {
     return (isDark(c)
-            ? new int[] {0xffffb1c6, 0xffb8c4ff, 0xff8fd5c3, 0xfff2bf69, 0xffe2b7ff, 0xff96cbf5}
-            : new int[] {0xffa83c5d, 0xff3254cb, 0xff1b6b5d, 0xff815500, 0xff7b4699, 0xff1e6390})
+            ? new int[] {0xffff8da9, 0xff82a4ff, 0xff5fd4b8, 0xfff5b952, 0xffd494ff, 0xff6ec0f7}
+            : new int[] {0xffc83e65, 0xff2855d6, 0xff167966, 0xff9c6200, 0xff7e3fa3, 0xff16699e})
         [Math.floorMod(index, 6)];
   }
 
   static int courseInk(Context c, int index) {
     return (isDark(c)
-            ? new int[] {0xffffd9e2, 0xffdde1ff, 0xffc4efe3, 0xffffdeaf, 0xfff3daff, 0xffcde5ff}
-            : new int[] {0xff3f0a1e, 0xff0d2a8a, 0xff00382f, 0xff2a1800, 0xff2f0848, 0xff001d33})
+            ? new int[] {0xffffe3ea, 0xffe2e8ff, 0xffd4f5ec, 0xffffeccb, 0xfff4e3ff, 0xffd8edff}
+            : new int[] {0xff4a1023, 0xff102978, 0xff063c32, 0xff382100, 0xff320b4c, 0xff05233b})
         [Math.floorMod(index, 6)];
   }
 }
